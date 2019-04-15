@@ -535,7 +535,7 @@ void nft::editgameattr(graphenelib::name owner, id_type gameid, string key, stri
     iter->value = value;
     
     game_tables.modify(game_find, owner, [&](auto& attr_data) {
-        attr_data.gameattr.push_back({key, value});
+        attr_data.gameattr = vectAttr;
     }); 
 }
 
