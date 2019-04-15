@@ -10,6 +10,8 @@
 #include <graphenelib/asset.h>
 #include <graphenelib/contract_asset.hpp>
 #include <graphenelib/crypto.h>
+#include <vector>
+#include <algorithm>
 
 using namespace graphene;
 using namespace std;
@@ -173,6 +175,11 @@ class nft : public contract
         uint64_t get_status() const { return status; }
     };
 
+    struct attrpair{
+        std::string key;
+        std::string value;
+    };
+    
     //@abi table nftgame i64
     struct nftgame
     {
@@ -183,6 +190,8 @@ class nft : public contract
         id_type index;
         uint64_t createtime;
         //std::map<string, string> gameattr;//todo(liyh) 不支持map，可用新建table查看
+        std::vector<attrpair> gameattr;
+        
         uint64_t primary_key() const { return gameid; }
         uint64_t get_status() const { return status; }
         uint64_t get_index() const { return index; }

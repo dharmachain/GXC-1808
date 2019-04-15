@@ -7,7 +7,7 @@ bool is_account( const graphenelib::name& account ) {
    
 void nft::addadmin(graphenelib::name admin) 
 {
-	//require_auth(_self);
+	//require_auth(_self);//todo(liyh)鉴权是发布人的id
     graphene_assert(is_account(admin), "admin account does not exist");
  
     auto admin_one = admin_tables.find(admin.value);
@@ -497,66 +497,69 @@ void nft::delgame(graphenelib::name owner, id_type gameid)
     game_tables.erase(game_find);
 }
 
-// void nft::addgameattr(name owner, id_type gameid, string key, string value) 
-// {
-// 	graphene_assert(is_account(owner), "issuer account does not exist");
-//     //require_auth(owner);
-//     auto admin_one = admin_tables.find(owner.value);
-//     graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
+void nft::addgameattr(graphenelib::name owner, id_type gameid, string key, string value) 
+{
+	graphene_assert(is_account(owner), "issuer account does not exist");
+    //require_auth(owner);
+    auto admin_one = admin_tables.find(owner.value);
+    graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
     
-//     auto game_find = game_tables.find(gameid);
-//     graphene_assert(game_find != game_tables.end(), "gameid is not exist");
-//     std::map<string, string> introducesmap;
-
-//     introducesmap = game_find->gameattr;
-//     auto iter = introducesmap.find(key);
-//     graphene_assert(iter == introducesmap.end(), "key is exist");
-//     introducesmap.insert(std::pair<string, string>(key, value));  
-//     game_tables.modify(game_find, owner, [&](auto& attr_data) {
-//         attr_data.gameattr = introducesmap;
-//     }); 
-// }
-
-// void nft::editgameattr(graphenelib::name owner, id_type gameid, string key, string value) 
-// {
-// 	graphene_assert(is_account(owner), "issuer account does not exist");
-//     //require_auth(owner);
-//     auto admin_one = admin_tables.find(owner.value);
-//     graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
+    auto game_find = game_tables.find(gameid);
+    graphene_assert(game_find != game_tables.end(), "gameid is not exist");
     
-//     auto game_find = game_tables.find(gameid);
-//     graphene_assert(game_find != game_tables.end(), "gameid is not exist");
-//     std::map<string, string> introducesmap;
+    auto iter = find_if(game_find->gameattr.begin(),
+                    game_find->gameattr.end(),
+                    [=] (const attrpair& m) -> bool { return key == m.key; });
+    graphene_assert(iter == game_find->gameattr.end(), "key is exist");
 
-//     introducesmap = game_find->gameattr;
-//     auto iter = introducesmap.find(key);
-//     graphene_assert(iter != introducesmap.end(), "key is not exist");
-//     introducesmap[key] = value;  
-//     game_tables.modify(game_find, owner, [&](auto& attr_data) {
-//         attr_data.gameattr = introducesmap;
-//     }); 
-// }
+    game_tables.modify(game_find, owner, [&](auto& attr_data) {
+        attr_data.gameattr.push_back({key, value});
+    }); 
+}
 
-// void nft::delgameattr(graphenelib::name owner, id_type gameid, string key) 
-// {
-// 	graphene_assert(is_account(owner), "issuer account does not exist");
-//     //require_auth(owner);
-//     auto admin_one = admin_tables.find(owner.value);
-//     graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
+void nft::editgameattr(graphenelib::name owner, id_type gameid, string key, string value) 
+{
+	graphene_assert(is_account(owner), "issuer account does not exist");
+    //require_auth(owner);
+    auto admin_one = admin_tables.find(owner.value);
+    graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
     
-//     auto game_find = game_tables.find(gameid);
-//     graphene_assert(game_find != game_tables.end(), "gameid is not exist");
-//     std::map<string, string> introducesmap;
+    auto game_find = game_tables.find(gameid);
+    graphene_assert(game_find != game_tables.end(), "gameid is not exist");
+    
+    std::vector<attrpair> vectAttr = game_find->gameattr;
+    auto iter = find_if(vectAttr.begin(),
+                    vectAttr.end(),
+                    [=] (const attrpair& m) -> bool { return key == m.key; });
+    graphene_assert(iter != vectAttr.end(), "key is not exist");
+    iter->value = value;
+    
+    game_tables.modify(game_find, owner, [&](auto& attr_data) {
+        attr_data.gameattr.push_back({key, value});
+    }); 
+}
 
-//     introducesmap = game_find->gameattr;
-//     auto iter = introducesmap.find(key);
-//     graphene_assert(iter != introducesmap.end(), "key is not exist");
-//     introducesmap.erase(key); 
+void nft::delgameattr(graphenelib::name owner, id_type gameid, string key) 
+{
+	graphene_assert(is_account(owner), "issuer account does not exist");
+    //require_auth(owner);
+    auto admin_one = admin_tables.find(owner.value);
+    graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
+    
+    auto game_find = game_tables.find(gameid);
+    graphene_assert(game_find != game_tables.end(), "gameid is not exist");
+    
+    std::vector<attrpair> vectAttr = game_find->gameattr;
+    auto iter = find_if(vectAttr.begin(),
+                    vectAttr.end(),
+                    [=] (const attrpair& m) -> bool { return key == m.key; });
+    graphene_assert(iter != vectAttr.end(), "key is not exist");
+    vectAttr.erase(iter);
 
-//     game_tables.modify(game_find, owner, [&](auto& attr_data) {
-//         attr_data.gameattr = introducesmap;
-//     }); 
-// }
+    game_tables.modify(game_find, owner, [&](auto& attr_data) {
+        attr_data.gameattr = vectAttr;
+    }); 
+}
 
 void nft::addmapping(graphenelib::name owner, id_type fromid, id_type targetid, id_type chainid) 
 {
