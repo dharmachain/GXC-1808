@@ -55,6 +55,12 @@ class nft : public contract
     void create(graphenelib::name creator, graphenelib::name owner, std::string explain, std::string worldview);
     /// @abi action
     void createother(graphenelib::name creator, graphenelib::name owner, std::string explain, std::string worldview, id_type chainid, id_type targetid);
+    /// @abi action
+    void addnftattr(graphenelib::name owner, id_type nftid, std::string key, std::string value);
+    /// @abi action
+    void editnftattr(graphenelib::name owner, id_type nftid, std::string key, std::string value);
+    /// @abi action
+    void delnftattr(graphenelib::name owner, id_type nftid, std::string key);
 
     /// @abi action
     void addaccauth(graphenelib::name owner, graphenelib::name auth);
@@ -133,6 +139,11 @@ class nft : public contract
         uint64_t primary_key() const { return owner.value; }
     };
 
+    struct attrpair{
+        std::string key;
+        std::string value;
+    };
+
     //@abi table nftts i64
     struct nftts
     {
@@ -142,7 +153,9 @@ class nft : public contract
         graphenelib::name auth;
         std::string explain;
         uint64_t createtime;
-        std::string worldview;            
+        std::string worldview;
+        std::vector<attrpair> attr;
+
         uint64_t primary_key() const { return id; }
         uint64_t get_owner() const { return owner.value; }
         uint64_t get_creator() const { return creator.value; }
@@ -185,11 +198,6 @@ class nft : public contract
         uint64_t get_fir() const { return firid; }
         uint64_t get_sec() const { return secid; }
         uint64_t get_status() const { return status; }
-    };
-
-    struct attrpair{
-        std::string key;
-        std::string value;
     };
 	
 	//@abi table assetmapes i64

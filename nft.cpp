@@ -152,6 +152,74 @@ void nft::addaccauth(graphenelib::name owner,graphenelib::name auth)
     });
 }
 
+void nft::addnftattr(graphenelib::name owner, id_type nftid, std::string key, std::string value) 
+{
+    graphene_assert(is_account(owner), "issuer account does not exist");
+    //require_auth(owner);
+
+    auto admin_one = admin_tables.find(owner.value);
+    graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
+    
+    auto nft_find = nft_tables.find(nftid);
+    graphene_assert(nft_find != nft_tables.end(), "nft id is not exist");
+
+    std::vector<attrpair> vectAttr = nft_find->attr;
+    auto iter = find_if(vectAttr.begin(),
+                    vectAttr.end(),
+                    [=] (const attrpair& m) -> bool { return key == m.key; });
+    graphene_assert(iter == vectAttr.end(), "key is exist");
+    vectAttr.push_back({key, value}); 
+    nft_tables.modify(nft_find, owner, [&](auto& attr_data) {
+        attr_data.attr = vectAttr;
+    });
+}
+
+void nft::editnftattr(graphenelib::name owner, id_type nftid, std::string key, std::string value) 
+{
+    graphene_assert(is_account(owner), "issuer account does not exist");
+    //require_auth(owner);
+
+    auto admin_one = admin_tables.find(owner.value);
+    graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
+    
+    auto nft_find = nft_tables.find(nftid);
+    graphene_assert(nft_find != nft_tables.end(), "nft id is not exist");
+
+    std::vector<attrpair> vectAttr = nft_find->attr;
+    auto iter = find_if(vectAttr.begin(),
+                    vectAttr.end(),
+                    [=] (const attrpair& m) -> bool { return key == m.key; });
+    graphene_assert(iter != vectAttr.end(), "key is not exist");
+    iter->value = value;
+
+    nft_tables.modify(nft_find, owner, [&](auto& attr_data) {
+        attr_data.attr = vectAttr;
+    }); 
+}
+
+void nft::delnftattr(graphenelib::name owner, id_type nftid, string key) 
+{
+    graphene_assert(is_account(owner), "issuer account does not exist");
+    //require_auth(owner);
+
+    auto admin_one = admin_tables.find(owner.value);
+    graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
+    
+    auto nft_find = nft_tables.find(nftid);
+    graphene_assert(nft_find != nft_tables.end(), "nft id is not exist");
+
+    std::vector<attrpair> vectAttr = nft_find->attr;
+    auto iter = find_if(vectAttr.begin(),
+                    vectAttr.end(),
+                    [=] (const attrpair& m) -> bool { return key == m.key; });
+    graphene_assert(iter != vectAttr.end(), "key is not exist");
+    vectAttr.erase(iter);
+
+    nft_tables.modify(nft_find, owner, [&](auto& attr_data) {
+        attr_data.attr = vectAttr;
+    }); 
+}
+
 void nft::delaccauth(graphenelib::name owner) 
 {
     //require_auth(owner);
@@ -809,6 +877,6 @@ void nft::contractWithdraw(graphenelib::name user, contract_asset amount, std::s
     amount.amount);
 }
 
-GRAPHENE_ABI(nft, (addadmin)(deladmin)(create)(createother)(addaccauth)(delaccauth)(addnftauth)(delnftauth)
+GRAPHENE_ABI(nft, (addadmin)(deladmin)(create)(createother)(addnftattr)(editnftattr)(delnftattr)(addaccauth)(delaccauth)(addnftauth)(delnftauth)
      (transfer)(addchain)(setchain)(addcompattr)(delcompattr)(setcompose)(delcompose)(addgame)(setgame)(editgame)
      (delgame)(addgameattr)(editgameattr)(delgameattr)(addmapping)(delmapping)(burn)(createorder)(cancelorder)(trade))
