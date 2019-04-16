@@ -681,6 +681,134 @@ void nft::delmapping(graphenelib::name owner, id_type fromid, id_type chainid)
     assetmap_tables.erase(nftmap_find);
 }
 
+void nft::createorder(graphenelib::name owner, id_type nftid, contract_asset amount, std::string side, std::string memo)
+{
+    graphene_assert(is_account(owner), "issuer account does not exist");
+    //require_auth(owner);
+
+    //param check
+    graphene_assert(side == "buy" || side == "sell", "side must eq buy or sell");
+    graphene_assert(memo.size() <= 256, "memo has more than 256 bytes");
+    graphene_assert(amount.amount > 0, "amount must be positive");
+    graphene_assert(amount.asset_id == 1, "currency must be GXC");
+
+    //nft status check
+    auto status_iter = index_tables.find(nftid);
+    graphene_assert(status_iter != index_tables.end(), "nft index does not exist");
+    graphene_assert(status_iter->status == 1, "nft status is close, can't place order");
+
+    //nft check
+    auto asset_iter = nft_tables.find(nftid);
+    graphene_assert(asset_iter != nft_tables.end(), "asset does not exist");
+
+    if (side == "sell") {
+        graphene_assert(asset_iter->owner == owner, "can't sell other nft asset");
+        auto order_data = order_tables.get_index<N(bynftid)>();
+        auto iter = order_data.lower_bound(nftid);
+        bool isValid = true;
+        for( ; iter != order_data.end() && iter->nftid == nftid; ++iter){
+            if(iter->side == "sell") {
+                isValid = false;  //one nft one sell
+                break;  
+            }
+        }
+        graphene_assert(isValid, "nft sell order is not valid");
+    } else {
+        graphene_assert(asset_iter->owner != owner, "Can't buy your own nft asset");
+    }
+
+    order_tables.emplace(owner, [&](auto& order) {
+        order.id = order_tables.available_primary_key();
+        order.nftid = nftid;
+        order.owner = owner;
+        order.price = amount;
+        order.side = side;
+        order.memo = memo;
+        order.createtime = get_head_block_time();
+    });
+}
+
+void nft::cancelorder(graphenelib::name owner, int64_t id)
+{
+    graphene_assert(is_account(owner), "issuer account does not exist");
+    //require_auth(owner);
+
+    auto iter = order_tables.find(id);
+    graphene_assert(iter != order_tables.end(), "order is not exist");
+    graphene_assert(iter->owner == owner, "owner is not equal");
+    auto status_iter = index_tables.find(iter->nftid);
+    graphene_assert(status_iter != index_tables.end(), "nft index does not exist");
+    graphene_assert(status_iter->status == 1, "nft status is close, can't place order");
+    order_tables.erase(iter);
+
+    //transfer
+}
+
+void nft::trade(graphenelib::name from, graphenelib::name to, id_type id, std::string memo)
+{
+    graphene_assert(is_account(from), "issuer account does not exist");
+    //require_auth(from);
+    //require_auth(to);
+    graphene_assert(memo.size() <= 256, "memo has more than 256 bytes");
+
+    auto order_iter = order_tables.find(id);
+    graphene_assert(order_iter != order_tables.end(), "order is not exist");
+    order_tables.erase(order_iter);
+
+    auto nft_iter = nft_tables.find(id);
+    graphene_assert(nft_iter != nft_tables.end(), "nft asset is not exist");
+    graphene_assert(nft_iter->owner == from, "owner is not equal");
+
+    auto status_iter = index_tables.find(id);
+    graphene_assert(status_iter != index_tables.end(), "nft index does not exist");
+    graphene_assert(status_iter->status == 1, "nft status is close");
+
+    transfer(from, to, id, memo);
+    
+    //contractTransfer(get_self(), to, order_iter->price, memo)
+}
+void nft::contractDeposit(graphenelib::name user, contract_asset amount, std::string memo) 
+{
+    graphene_assert(is_account(user), "user account does not exist");
+
+    graphene_assert(amount.amount > 0, "amount must be positive");    
+    graphene_assert(amount.asset_id == 1, "currency must be GXC");
+
+    //todo
+    // action(
+    //     permission_level{user, "active"_n},
+    //     "eosio.token"_n, "transfer"_n,
+    //     std::make_tuple(user, _self, amount, memo)
+    // ).send();
+}
+
+void nft::contractTransfer(graphenelib::name from, graphenelib::name to, contract_asset amount, std::string memo)
+{
+    graphene_assert(is_account(from), "user account does not exist");
+    graphene_assert(is_account(to), "user account does not exist");
+    graphene_assert(amount.amount > 0, "amount must be positive");
+    graphene_assert(amount.asset_id == 1, "currency must be GXC");
+
+    //todo
+    // action(
+    //     permission_level{from, "active"_n},
+    //     "eosio.token"_n, "transfer"_n,
+    //     std::make_tuple(from, to, amount, memo)
+    // ).send();
+}
+
+void nft::contractWithdraw(graphenelib::name user, contract_asset amount, std::string memo)
+{
+    graphene_assert(is_account(user), "user account does not exist");
+    graphene_assert(amount.amount > 0, "amount must be positive");
+    graphene_assert(amount.asset_id == 1, "currency must be GXC");
+
+    withdraw_asset(_self, 
+    get_account_id(user.to_string().c_str(), user.to_string().size()), 
+    amount.asset_id, 
+    amount.amount);
+}
+
 GRAPHENE_ABI(nft, (addadmin)(deladmin)(create)(createother)(addaccauth)(delaccauth)(addnftauth)(delnftauth)
      (transfer)(addchain)(setchain)(addcompattr)(delcompattr)(setcompose)(delcompose)(addgame)(setgame)(editgame)
-     (delgame)(addgameattr)(editgameattr)(delgameattr)(addmapping)(delmapping)(burn))
+     (delgame)(addgameattr)(editgameattr)(delgameattr)(addmapping)(delmapping)(burn)(createorder)(cancelorder)(trade))

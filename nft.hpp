@@ -23,6 +23,11 @@ typedef uint128_t uuid;
 typedef uint64_t id_type;
 typedef string uri_type;
 
+enum order_side {
+    BUY     =   0, 
+    SELL    =   1
+};
+
 class nft : public contract
 {
   public:
@@ -37,7 +42,8 @@ class nft : public contract
             admin_tables(_self, _self),
             composeattr_tables(_self, _self),
             index_tables(_self, _self),
-            nftnumber_tables(_self, _self)
+            nftnumber_tables(_self, _self),
+            order_tables(_self, _self)
         {}
     
     /// @abi action
@@ -96,10 +102,13 @@ class nft : public contract
     /// @abi action
     void delgameattr(graphenelib::name owner, id_type gameid, std::string key);
  
-    
-    
-    
-    
+ 	/// @abi action
+    void createorder(graphenelib::name owner, id_type nftid, contract_asset amount, std::string side, std::string memo);
+    /// @abi action
+	void cancelorder(graphenelib::name owner, int64_t id);
+	/// @abi action
+    void trade(graphenelib::name from, graphenelib::name to, id_type id, std::string memo);
+
     //@abi table admins i64
     struct admins
     {
@@ -213,8 +222,20 @@ class nft : public contract
         uint64_t get_index() const { return index; }
     };
 
-    
-    
+   //@abi table order i64
+   struct order 
+   {
+        int64_t         id;
+        id_type         nftid;
+        graphenelib::name            owner;
+        contract_asset  price;
+        std::string     side;
+        std::string     memo;
+        uint64_t        createtime;
+
+        uint64_t primary_key() const { return id; }
+        uint64_t get_nftid() const { return nftid; }
+    };
 
     using admins_index = multi_index<N(admins), admins>;
 
@@ -248,8 +269,15 @@ class nft : public contract
         indexed_by< N(byfromid), const_mem_fun< assetmaps, uint64_t, &assetmaps::get_fromid> >,
         indexed_by< N(bytargetid), const_mem_fun< assetmaps, uint64_t, &assetmaps::get_targetid> >,
         indexed_by< N(bychainid), const_mem_fun< assetmaps, uint64_t, &assetmaps::get_chainid> > >;
+    using order_index = multi_index<N(orders), order,
+            indexed_by<N(bynftid), const_mem_fun<order, uint64_t, &order::get_nftid> > >;
 
-private:
+    private:
+        void contractDeposit(graphenelib::name user, contract_asset quantity, std::string memo);
+        void contractTransfer(graphenelib::name from, graphenelib::name to, contract_asset quantity, std::string memo);
+        void contractWithdraw(graphenelib::name user, contract_asset quantity, std::string memo);
+ 
+    private:
         admins_index        admin_tables;
         nftnumber_index     nftnumber_tables;
         nftindex_index      index_tables;
@@ -259,5 +287,6 @@ private:
         nftchain_index      nftchain_tables;
         compose_index       compose_tables;
         nftgame_index       game_tables;
-        assetmaps_index     assetmap_tables;   
+        assetmaps_index     assetmap_tables;
+        order_index         order_tables;
 };
