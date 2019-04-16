@@ -62,6 +62,8 @@ class nft : public contract
     /// @abi action
     void transfer(graphenelib::name from, graphenelib::name to, id_type id, std::string memo);
     /// @abi action
+    void burn(graphenelib::name owner, id_type nftid);
+	/// @abi action
     void addchain(graphenelib::name owner, std::string chain);
     /// @abi action
     void setchain(graphenelib::name owner, id_type chainid, id_type status);
@@ -73,6 +75,12 @@ class nft : public contract
     void setcompose(graphenelib::name owner, id_type firid, id_type secid);
     /// @abi action
     void delcompose(graphenelib::name owner, id_type firid, id_type secid);
+
+    /// @abi action
+    void addmapping(graphenelib::name owner, id_type fromid, id_type targetid, id_type chainid);
+    /// @abi action
+    void delmapping(graphenelib::name owner, id_type fromid, id_type chainid);
+   
     /// @abi action
     void addgame(graphenelib::name owner, std::string name, std::string introduces);
     /// @abi action
@@ -87,12 +95,7 @@ class nft : public contract
     void editgameattr(graphenelib::name owner, id_type gameid, std::string key, std::string value);
     /// @abi action
     void delgameattr(graphenelib::name owner, id_type gameid, std::string key);
-    /// @abi action
-    void addmapping(graphenelib::name owner, id_type fromid, id_type targetid, id_type chainid);
-    /// @abi action
-    void delmapping(graphenelib::name owner, id_type fromid, id_type chainid);
-    /// @abi action
-    void burn(graphenelib::name owner, id_type nftid);
+ 
     
     
     
@@ -179,6 +182,19 @@ class nft : public contract
         std::string key;
         std::string value;
     };
+	
+	//@abi table assetmapes i64
+    struct assetmaps 
+    {
+        id_type mappingid;
+        id_type fromid;
+        id_type targetid;
+        id_type chainid;
+        uint64_t primary_key() const { return mappingid; }
+        uint64_t get_fromid() const { return fromid; }
+        uint64_t get_targetid() const { return targetid; }
+        uint64_t get_chainid() const { return chainid; }
+    };
     
     //@abi table nftgame i64
     struct nftgame
@@ -197,18 +213,7 @@ class nft : public contract
         uint64_t get_index() const { return index; }
     };
 
-    //@abi table assetmapes i64
-    struct assetmapes 
-    {
-        id_type mappingid;
-        id_type fromid;
-        id_type targetid;
-        id_type chainid;
-        uint64_t primary_key() const { return mappingid; }
-        uint64_t get_fromid() const { return fromid; }
-        uint64_t get_targetid() const { return targetid; }
-        uint64_t get_chainid() const { return chainid; }
-    };
+    
     
 
     using admins_index = multi_index<N(admins), admins>;
@@ -239,10 +244,10 @@ class nft : public contract
         indexed_by< N(byindex), const_mem_fun< nftgame, uint64_t, &nftgame::get_index> >,
         indexed_by< N(bystatus), const_mem_fun< nftgame, uint64_t, &nftgame::get_status> > >;
         
-    using assetmapp_index = multi_index<N(assetmapes), assetmapes,
-        indexed_by< N(byfromid), const_mem_fun< assetmapes, uint64_t, &assetmapes::get_fromid> >,
-        indexed_by< N(bytargetid), const_mem_fun< assetmapes, uint64_t, &assetmapes::get_targetid> >,
-        indexed_by< N(bychainid), const_mem_fun< assetmapes, uint64_t, &assetmapes::get_chainid> > >;
+    using assetmaps_index = multi_index<N(assetmaps), assetmaps,
+        indexed_by< N(byfromid), const_mem_fun< assetmaps, uint64_t, &assetmaps::get_fromid> >,
+        indexed_by< N(bytargetid), const_mem_fun< assetmaps, uint64_t, &assetmaps::get_targetid> >,
+        indexed_by< N(bychainid), const_mem_fun< assetmaps, uint64_t, &assetmaps::get_chainid> > >;
 
 private:
         admins_index        admin_tables;
@@ -254,5 +259,5 @@ private:
         nftchain_index      nftchain_tables;
         compose_index       compose_tables;
         nftgame_index       game_tables;
-        assetmapp_index     assetmap_tables;   
+        assetmaps_index     assetmap_tables;   
 };
