@@ -44,7 +44,9 @@ class nft : public contract
             index_tables(_self, _self),
             nftnumber_tables(_self, _self),
             order_tables(_self, _self)
-        {}
+        {
+            contract_owner = get_trx_sender();
+        }
     
     /// @abi action
     void addadmin(graphenelib::name admin);
@@ -281,11 +283,6 @@ class nft : public contract
             indexed_by<N(bynftid), const_mem_fun<order, uint64_t, &order::get_nftid> > >;
 
     private:
-        void contractDeposit(graphenelib::name user, contract_asset quantity, std::string memo);
-        void contractTransfer(graphenelib::name from, graphenelib::name to, contract_asset quantity, std::string memo);
-        void contractWithdraw(graphenelib::name user, contract_asset quantity, std::string memo);
- 
-    private:
         admins_index        admin_tables;
         nftnumber_index     nftnumber_tables;
         nftindex_index      index_tables;
@@ -297,4 +294,6 @@ class nft : public contract
         nftgame_index       game_tables;
         assetmaps_index     assetmap_tables;
         order_index         order_tables;
+
+        int64_t             contract_owner = 0;
 };

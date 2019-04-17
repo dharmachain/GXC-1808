@@ -35,7 +35,7 @@ void nft::create(graphenelib::name creator, graphenelib::name owner, std::string
     graphene_assert(is_account(owner), "owner account does not exist");
 
     graphene_assert(explain.size() <= 256, "explain has more than 256 bytes");
-    graphene_assert(worldview.size() <= 20, "worldview has more than 20 bytes");
+    graphene_assert(worldview.size() <= 20 && worldview.size() > 0, "worldview has more than 20 bytes or is empty");
     //require_auth(creator);
 
     auto admin_one = admin_tables.find(creator.value);
@@ -81,7 +81,7 @@ void nft::createother(graphenelib::name creator, graphenelib::name owner, std::s
     graphene_assert(is_account(owner), "owner account does not exist");
 
     graphene_assert(explain.size() <= 256, "explain has more than 64 bytes");
-    graphene_assert(worldview.size() <= 20, "worldview has more than 20 bytes");
+    graphene_assert(worldview.size() <= 20 && worldview.size() > 0, "worldview has more than 20 bytes or is empty");
 
 	//require_auth(creator);
     
@@ -346,7 +346,7 @@ void nft::burn(graphenelib::name owner, id_type nftid)
     auto index_id = index_tables.find(nftid);
     graphene_assert(index_id != index_tables.end(), "nft index does not exist");
     index_tables.modify(index_id, _self, [&](auto& index_data) {
-          index_data.status = 0;
+        index_data.status = 0;
     }); 
 
     auto compose_find=composeattr_tables.find(nftid);
@@ -783,6 +783,12 @@ void nft::createorder(graphenelib::name owner, id_type nftid, contract_asset amo
         graphene_assert(isValid, "nft sell order is not valid");
     } else {
         graphene_assert(asset_iter->owner != owner, "Can't buy your own nft asset");
+        //transfer GXC from owner to _self//todo()
+        // action(
+        //     permission_level{ owner, "active"_n },
+        //     "eosio.token"_n, "transfer"_n,
+        //     std::make_tuple(owner, _self, amount, memo)
+        // ).send();
     }
 
     order_tables.emplace(owner, [&](auto& order) {
@@ -809,7 +815,16 @@ void nft::cancelorder(graphenelib::name owner, int64_t id)
     graphene_assert(status_iter->status == 1, "nft status is close, can't place order");
     order_tables.erase(iter);
 
-    //transfer
+    //transfer token//todo
+    auto price = iter->price;
+    int64_t fee_amount = 1;  //0.00001 GXC
+    if (price.amount > 1) {
+        price.amount = price.amount - fee_amount;
+        // action(permission_level{ _self, "active"_n },
+        //     "eosio.token"_n, "transfer"_n,
+        //     std::make_tuple(_self, owner, price, std::string("cancel order")))
+        // .send();
+    }
 }
 
 void nft::trade(graphenelib::name from, graphenelib::name to, id_type id, std::string memo)
@@ -831,50 +846,41 @@ void nft::trade(graphenelib::name from, graphenelib::name to, id_type id, std::s
     graphene_assert(status_iter != index_tables.end(), "nft index does not exist");
     graphene_assert(status_iter->status == 1, "nft status is close");
 
+    //from account nft number -1
+    auto from_nftnum = nftnumber_tables.find(from.value);
+    graphene_assert(from_nftnum != nftnumber_tables.end(), "from account nft number does not exist");
+    if(from_nftnum->number != 1) {
+        nftnumber_tables.modify(from_nftnum, from, [&](auto& nftnum_data) {
+            nftnum_data.number = from_nftnum->number-1;
+        });
+    } else {
+        nftnumber_tables.erase(from_nftnum);
+    }
+
+    //to account nft number +1
+    auto to_nftnum = nftnumber_tables.find(to.value);
+    graphene_assert(to_nftnum != nftnumber_tables.end(), "to account nft number does not exist");
+    if(to_nftnum->number != 1) {
+        nftnumber_tables.modify(to_nftnum, to, [&](auto& nftnum_data) {
+            nftnum_data.number = to_nftnum->number+1;
+        });
+    } else {
+        nftnumber_tables.erase(to_nftnum);
+    }
+	
+    //transfer nft to buyer//todo()
     transfer(from, to, id, memo);
     
-    //contractTransfer(get_self(), to, order_iter->price, memo)
-}
-void nft::contractDeposit(graphenelib::name user, contract_asset amount, std::string memo) 
-{
-    graphene_assert(is_account(user), "user account does not exist");
-
-    graphene_assert(amount.amount > 0, "amount must be positive");    
-    graphene_assert(amount.asset_id == 1, "currency must be GXC");
-
-    //todo
-    // action(
-    //     permission_level{user, "active"_n},
-    //     "eosio.token"_n, "transfer"_n,
-    //     std::make_tuple(user, _self, amount, memo)
-    // ).send();
-}
-
-void nft::contractTransfer(graphenelib::name from, graphenelib::name to, contract_asset amount, std::string memo)
-{
-    graphene_assert(is_account(from), "user account does not exist");
-    graphene_assert(is_account(to), "user account does not exist");
-    graphene_assert(amount.amount > 0, "amount must be positive");
-    graphene_assert(amount.asset_id == 1, "currency must be GXC");
-
-    //todo
-    // action(
-    //     permission_level{from, "active"_n},
-    //     "eosio.token"_n, "transfer"_n,
-    //     std::make_tuple(from, to, amount, memo)
-    // ).send();
-}
-
-void nft::contractWithdraw(graphenelib::name user, contract_asset amount, std::string memo)
-{
-    graphene_assert(is_account(user), "user account does not exist");
-    graphene_assert(amount.amount > 0, "amount must be positive");
-    graphene_assert(amount.asset_id == 1, "currency must be GXC");
-
-    withdraw_asset(_self, 
-    get_account_id(user.to_string().c_str(), user.to_string().size()), 
-    amount.asset_id, 
-    amount.amount);
+    //transfer token to seller
+    auto price = order_iter->price;
+    int64_t fee_amount = 1;  //fee 0.00001 GXC
+    if (price.amount > 1) {
+        price.amount = price.amount - fee_amount;
+        // action(permission_level{ _self, "active"_n },
+        //     "eosio.token"_n, "transfer"_n,
+        //     std::make_tuple(_self, from, price, memo))
+        // .send();
+    }
 }
 
 GRAPHENE_ABI(nft, (addadmin)(deladmin)(create)(createother)(addnftattr)(editnftattr)(delnftattr)(addaccauth)(delaccauth)(addnftauth)(delnftauth)
