@@ -170,11 +170,16 @@ void nft::addnftattr(std::string strowner, id_type nftid, std::string key, std::
     graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
 
-    auto admin_one = admin_tables.find(owner.value);
-    graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
+    //auto admin_one = admin_tables.find(owner.value);
+    //graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
     
     auto nft_find = nft_tables.find(nftid);
     graphene_assert(nft_find != nft_tables.end(), "nft id is not exist");
+
+    //nft status check
+    auto status_iter = index_tables.find(nftid);
+    graphene_assert(status_iter != index_tables.end(), "nft index does not exist");
+    graphene_assert(status_iter->status == 1, "nft status is close, does not add nft attr");
 
     std::vector<attrpair> vectAttr = nft_find->attr;
     auto iter = find_if(vectAttr.begin(),
@@ -193,11 +198,16 @@ void nft::editnftattr(std::string strowner, id_type nftid, std::string key, std:
     graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
 
-    auto admin_one = admin_tables.find(owner.value);
-    graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
+    //auto admin_one = admin_tables.find(owner.value);
+    //graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
     
     auto nft_find = nft_tables.find(nftid);
     graphene_assert(nft_find != nft_tables.end(), "nft id is not exist");
+    
+	//nft status check
+    auto status_iter = index_tables.find(nftid);
+    graphene_assert(status_iter != index_tables.end(), "nft index does not exist");
+    graphene_assert(status_iter->status == 1, "nft status is close, does not edit nft attr");
 
     std::vector<attrpair> vectAttr = nft_find->attr;
     auto iter = find_if(vectAttr.begin(),
@@ -217,11 +227,16 @@ void nft::delnftattr(std::string strowner, id_type nftid, string key)
     graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
 
-    auto admin_one = admin_tables.find(owner.value);
-    graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
+    //auto admin_one = admin_tables.find(owner.value);
+    //graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
     
     auto nft_find = nft_tables.find(nftid);
     graphene_assert(nft_find != nft_tables.end(), "nft id is not exist");
+
+    //nft status check
+    auto status_iter = index_tables.find(nftid);
+    graphene_assert(status_iter != index_tables.end(), "nft index does not exist");
+    graphene_assert(status_iter->status == 1, "nft status is close, does not delete nft attr");
 
     std::vector<attrpair> vectAttr = nft_find->attr;
     auto iter = find_if(vectAttr.begin(),
