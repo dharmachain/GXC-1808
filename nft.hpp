@@ -23,6 +23,8 @@ typedef uint128_t uuid;
 typedef uint64_t id_type;
 typedef string uri_type;
 
+std::string my_owner_name = "damo-test";//todo 根据更改默认合约所有者
+
 class nft : public contract
 {
   public:
@@ -40,7 +42,12 @@ class nft : public contract
             nftnumber_tables(_self, _self),
             order_tables(_self, _self)
         {
-            contract_owner = get_trx_sender();//todo 根据更改默认合约所有者
+            if (is_account(my_owner_name)) {
+                int64_t account_id = get_account_id(
+                    my_owner_name.c_str(),
+                    my_owner_name.size());
+                contract_owner_id = account_id;
+            }
         }
     
     /// @abi action
@@ -278,7 +285,8 @@ class nft : public contract
             indexed_by<N(bynftid), const_mem_fun<order, uint64_t, &order::get_nftid> > >;
 
     private:
-        bool is_account( const std::string & account );
+        bool is_account( const std::string & account );        
+        bool is_contract_ownner( const int64_t& account_id );
 
     private:
         admins_index        admin_tables;
@@ -293,5 +301,5 @@ class nft : public contract
         assetmaps_index     assetmap_tables;
         order_index         order_tables;
 
-        int64_t             contract_owner = 0;
+        int64_t             contract_owner_id = 0;
 };

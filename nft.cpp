@@ -5,10 +5,13 @@ bool nft::is_account( const std::string & account ) {
     return account_id >= 0;
 }
 
+bool nft::is_contract_ownner(const int64_t& account_id){
+    return account_id == contract_owner_id;
+}
+
 void nft::addadmin(std::string stradmin) 
-{
-    
-	//require_auth(_self);//todo(liyh)鉴权是发布人的id
+{    
+	graphene_assert(is_contract_ownner(get_trx_sender()), "you must be owner");//require_auth(_self);//todo(liyh)鉴权是发布人的id
     graphene_assert(is_account(stradmin), "admin account does not exist");
     graphenelib::name admin = {.value = graphenelib::string_to_name(stradmin.c_str())};
  
@@ -22,7 +25,7 @@ void nft::addadmin(std::string stradmin)
 
 void nft::deladmin(std::string stradmin) 
 {
-	//require_auth(_self);
+	graphene_assert(is_contract_ownner(get_trx_sender()), "you must be owner");//require_auth(_self);
     graphene_assert(is_account(stradmin), "admin account does not exist");
     graphenelib::name admin = {.value = graphenelib::string_to_name(stradmin.c_str())};
 
