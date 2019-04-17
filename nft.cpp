@@ -1,14 +1,16 @@
 #include "nft.hpp"
 
-bool is_account( const graphenelib::name& account ) {
-  int64_t account_id = get_account_id(account.to_string().c_str(), account.to_string().size());
-  return account_id >= 0;
+bool nft::is_account( const std::string & account ) {
+    int64_t account_id = get_account_id(account.c_str(), account.size());
+    return account_id >= 0;
 }
-   
-void nft::addadmin(graphenelib::name admin) 
+
+void nft::addadmin(std::string stradmin) 
 {
+    
 	//require_auth(_self);//todo(liyh)鉴权是发布人的id
-    graphene_assert(is_account(admin), "admin account does not exist");
+    graphene_assert(is_account(stradmin), "admin account does not exist");
+    graphenelib::name admin = {.value = graphenelib::string_to_name(stradmin.c_str())};
  
     auto admin_one = admin_tables.find(admin.value);
     graphene_assert(admin_one == admin_tables.end(), "admin account already authed");
@@ -18,10 +20,11 @@ void nft::addadmin(graphenelib::name admin)
     });
 }
 
-void nft::deladmin(graphenelib::name admin) 
+void nft::deladmin(std::string stradmin) 
 {
 	//require_auth(_self);
-    graphene_assert(is_account(admin), "admin account does not exist");
+    graphene_assert(is_account(stradmin), "admin account does not exist");
+    graphenelib::name admin = {.value = graphenelib::string_to_name(stradmin.c_str())};
 
     auto admin_one = admin_tables.find(admin.value);
     graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
@@ -29,10 +32,12 @@ void nft::deladmin(graphenelib::name admin)
     admin_tables.erase(admin_one);
 }
 
-void nft::create(graphenelib::name creator, graphenelib::name owner, std::string explain, std::string worldview) 
+void nft::create(std::string strcreator, std::string strowner, std::string explain, std::string worldview) 
 {
-    graphene_assert(is_account(creator), "creator account does not exist");
-    graphene_assert(is_account(owner), "owner account does not exist");
+    graphene_assert(is_account(strcreator), "creator account does not exist");
+    graphene_assert(is_account(strowner), "owner account does not exist");
+    graphenelib::name creator = {.value = graphenelib::string_to_name(strcreator.c_str())};
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
 
     graphene_assert(explain.size() <= 256, "explain has more than 256 bytes");
     graphene_assert(worldview.size() <= 20 && worldview.size() > 0, "worldview has more than 20 bytes or is empty");
@@ -75,10 +80,12 @@ void nft::create(graphenelib::name creator, graphenelib::name owner, std::string
     }
 }
 
-void nft::createother(graphenelib::name creator, graphenelib::name owner, std::string explain, std::string worldview, id_type chainid, id_type targetid) 
+void nft::createother(std::string strcreator, std::string strowner, std::string explain, std::string worldview, id_type chainid, id_type targetid) 
 {
-    graphene_assert(is_account(creator), "creator account does not exist");
-    graphene_assert(is_account(owner), "owner account does not exist");
+    graphene_assert(is_account(strcreator), "creator account does not exist");
+    graphene_assert(is_account(strowner), "owner account does not exist");
+    graphenelib::name creator = {.value = graphenelib::string_to_name(strcreator.c_str())};
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
 
     graphene_assert(explain.size() <= 256, "explain has more than 64 bytes");
     graphene_assert(worldview.size() <= 20 && worldview.size() > 0, "worldview has more than 20 bytes or is empty");
@@ -136,12 +143,14 @@ void nft::createother(graphenelib::name creator, graphenelib::name owner, std::s
     //print(time_now);
 }
 
-void nft::addaccauth(graphenelib::name owner,graphenelib::name auth) 
+void nft::addaccauth(std::string strowner,std::string strauth) 
 {
     //require_auth(owner);
     
-    graphene_assert(is_account(owner), "account owner does not exist");
-    graphene_assert(is_account(auth), "account auth does not exist");
+    graphene_assert(is_account(strowner), "account owner does not exist");
+    graphene_assert(is_account(strauth), "account auth does not exist");
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
+    graphenelib::name auth = {.value = graphenelib::string_to_name(strauth.c_str())};
 
     auto auth_find = accauth_tables.find(owner.value);
     graphene_assert(auth_find == accauth_tables.end(), "owner account already authed");
@@ -152,9 +161,10 @@ void nft::addaccauth(graphenelib::name owner,graphenelib::name auth)
     });
 }
 
-void nft::addnftattr(graphenelib::name owner, id_type nftid, std::string key, std::string value) 
+void nft::addnftattr(std::string strowner, id_type nftid, std::string key, std::string value) 
 {
-    graphene_assert(is_account(owner), "issuer account does not exist");
+    graphene_assert(is_account(strowner), "issuer account does not exist");
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
 
     auto admin_one = admin_tables.find(owner.value);
@@ -174,9 +184,10 @@ void nft::addnftattr(graphenelib::name owner, id_type nftid, std::string key, st
     });
 }
 
-void nft::editnftattr(graphenelib::name owner, id_type nftid, std::string key, std::string value) 
+void nft::editnftattr(std::string strowner, id_type nftid, std::string key, std::string value) 
 {
-    graphene_assert(is_account(owner), "issuer account does not exist");
+    graphene_assert(is_account(strowner), "issuer account does not exist");
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
 
     auto admin_one = admin_tables.find(owner.value);
@@ -197,9 +208,10 @@ void nft::editnftattr(graphenelib::name owner, id_type nftid, std::string key, s
     }); 
 }
 
-void nft::delnftattr(graphenelib::name owner, id_type nftid, string key) 
+void nft::delnftattr(std::string strowner, id_type nftid, string key) 
 {
-    graphene_assert(is_account(owner), "issuer account does not exist");
+    graphene_assert(is_account(strowner), "issuer account does not exist");
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
 
     auto admin_one = admin_tables.find(owner.value);
@@ -220,10 +232,11 @@ void nft::delnftattr(graphenelib::name owner, id_type nftid, string key)
     }); 
 }
 
-void nft::delaccauth(graphenelib::name owner) 
+void nft::delaccauth(std::string strowner) 
 {
     //require_auth(owner);
-    graphene_assert(is_account(owner), "account owner does not exist");
+    graphene_assert(is_account(strowner), "account owner does not exist");
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
 
     auto auth_find = accauth_tables.find(owner.value);
     graphene_assert(auth_find != accauth_tables.end(), "owner has not auth");
@@ -231,11 +244,13 @@ void nft::delaccauth(graphenelib::name owner)
     accauth_tables.erase(auth_find);
 }
 
-void nft::addnftauth(graphenelib::name owner, graphenelib::name auth, id_type id)
+void nft::addnftauth(std::string strowner, std::string strauth, id_type id)
 {
     //require_auth(owner);
-    graphene_assert(is_account(owner), "owner account does not exist");
-    graphene_assert(is_account(auth), "auth account does not exist");
+    graphene_assert(is_account(strowner), "owner account does not exist");
+    graphene_assert(is_account(strauth), "auth account does not exist");
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
+    graphenelib::name auth = {.value = graphenelib::string_to_name(strauth.c_str())};
 
     auto nft_find_id = nft_tables.find(id);
     graphene_assert(nft_find_id != nft_tables.end(), "nft id is not exist");
@@ -251,10 +266,11 @@ void nft::addnftauth(graphenelib::name owner, graphenelib::name auth, id_type id
     });    
 }
 
-void nft::delnftauth(graphenelib::name owner, id_type id)
+void nft::delnftauth(std::string strowner, id_type id)
 {
     //require_auth(owner);
-    graphene_assert(is_account(owner), "account owner does not exist");
+    graphene_assert(is_account(strowner), "account owner does not exist");    
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
 
     auto nft_find_id = nft_tables.find(id);
     graphene_assert(nft_find_id != nft_tables.end(), "nft id is not exist");
@@ -270,11 +286,13 @@ void nft::delnftauth(graphenelib::name owner, id_type id)
     });    
 }
 
-void nft::transfer(graphenelib::name from, graphenelib::name to, id_type id, string memo)
+void nft::transfer(std::string strfrom, std::string strto, id_type id, string memo)
 {
     //require_auth(from);
-    graphene_assert(is_account(from), "from auth does not exist");
-    graphene_assert(is_account(to), "to auth does not exist");
+    graphene_assert(is_account(strfrom), "from auth does not exist");
+    graphene_assert(is_account(strto), "to auth does not exist");
+    graphenelib::name from = {.value = graphenelib::string_to_name(strfrom.c_str())};
+    graphenelib::name to = {.value = graphenelib::string_to_name(strto.c_str())};
 
     graphene_assert(memo.size() <= 256, "memo has more than 256 bytes");
 
@@ -321,9 +339,10 @@ void nft::transfer(graphenelib::name from, graphenelib::name to, id_type id, str
     }  
 }
 
-void nft::burn(graphenelib::name owner, id_type nftid) 
+void nft::burn(std::string strowner, id_type nftid) 
 {
-	graphene_assert(is_account(owner), "issuer account does not exist");
+	graphene_assert(is_account(strowner), "issuer account does not exist");
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
     auto admin_one = admin_tables.find(owner.value);
     graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
@@ -376,9 +395,10 @@ void nft::burn(graphenelib::name owner, id_type nftid)
 	}
 }
 
-void nft::addchain(graphenelib::name owner,string chain)
+void nft::addchain(std::string strowner,string chain)
 {
-    graphene_assert(is_account(owner), "issuer account does not exist");
+    graphene_assert(is_account(strowner), "issuer account does not exist");    
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
 
     graphene_assert(chain.size() <= 64, "explain has more than 64 bytes");
 	//require_auth(owner);
@@ -406,9 +426,10 @@ void nft::addchain(graphenelib::name owner,string chain)
     });
 }
 
-void nft::setchain(graphenelib::name owner,id_type chainid,id_type status)
+void nft::setchain(std::string strowner,id_type chainid,id_type status)
 {
-    graphene_assert(is_account(owner), "issuer account does not exist");
+    graphene_assert(is_account(strowner), "issuer account does not exist");    
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
 
     auto admin_one = admin_tables.find(owner.value);
@@ -425,9 +446,10 @@ void nft::setchain(graphenelib::name owner,id_type chainid,id_type status)
     });
 }
 
-void nft::addcompattr(graphenelib::name owner, id_type id)
+void nft::addcompattr(std::string strowner, id_type id)
 {
-    graphene_assert(is_account(owner), "issuer account does not exist");
+    graphene_assert(is_account(strowner), "issuer account does not exist");    
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
 
     //require_auth(owner);
     auto admin_one = admin_tables.find(owner.value);
@@ -443,9 +465,10 @@ void nft::addcompattr(graphenelib::name owner, id_type id)
     });     
 }
 
-void nft::delcompattr(graphenelib::name owner, id_type id)
+void nft::delcompattr(std::string strowner, id_type id)
 {
-    graphene_assert(is_account(owner), "issuer account does not exist");
+    graphene_assert(is_account(strowner), "issuer account does not exist");
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
     auto admin_one = admin_tables.find(owner.value);
     graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
@@ -456,9 +479,10 @@ void nft::delcompattr(graphenelib::name owner, id_type id)
     composeattr_tables.erase(nft_find_id);     
 }
 
-void nft::setcompose(graphenelib::name owner, id_type firid, id_type secid)
+void nft::setcompose(std::string strowner, id_type firid, id_type secid)
 {
-    graphene_assert(is_account(owner), "issuer account does not exist");
+    graphene_assert(is_account(strowner), "issuer account does not exist");
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
     auto admin_one = admin_tables.find(owner.value);
     graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
@@ -493,9 +517,10 @@ void nft::setcompose(graphenelib::name owner, id_type firid, id_type secid)
     });
 }
 
-void nft::delcompose(graphenelib::name owner, id_type firid, id_type secid)
+void nft::delcompose(std::string strowner, id_type firid, id_type secid)
 {
-    graphene_assert(is_account(owner), "issuer account does not exist");
+    graphene_assert(is_account(strowner), "issuer account does not exist");
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
     auto admin_one = admin_tables.find(owner.value);
     graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
@@ -523,9 +548,10 @@ void nft::delcompose(graphenelib::name owner, id_type firid, id_type secid)
     compose_tables.erase(group_find_id);
 }
 
-void nft::addgame(graphenelib::name owner, std::string gamename, std::string introduces) 
+void nft::addgame(std::string strowner, std::string gamename, std::string introduces) 
 {
-	graphene_assert(is_account(owner), "issuer account does not exist");
+	graphene_assert(is_account(strowner), "issuer account does not exist");
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
     auto admin_one = admin_tables.find(owner.value);
     graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
@@ -555,14 +581,14 @@ void nft::addgame(graphenelib::name owner, std::string gamename, std::string int
     });
 }
 
-void nft::editgame(graphenelib::name owner, id_type gameid, std::string gamename, std::string introduces) 
+void nft::editgame(std::string strowner, id_type gameid, std::string gamename, std::string introduces) 
 {
-	graphene_assert(is_account(owner), "issuer account does not exist");
+	graphene_assert(is_account(strowner), "issuer account does not exist");
+	graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
     auto admin_one = admin_tables.find(owner.value);
     graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
     graphene_assert(introduces.size() <= 256, "introduces has more than 256 bytes");
-	graphene_assert(is_account(owner), "issuer account does not exist");
     
     auto game_find = game_tables.find(gameid);
     graphene_assert(game_find != game_tables.end(), "game id is not exist");
@@ -573,9 +599,10 @@ void nft::editgame(graphenelib::name owner, id_type gameid, std::string gamename
     });
 }
 
-void nft::setgame(graphenelib::name owner, id_type gameid, id_type status) 
+void nft::setgame(std::string strowner, id_type gameid, id_type status) 
 {
-	graphene_assert(is_account(owner), "issuer account does not exist");
+	graphene_assert(is_account(strowner), "issuer account does not exist");
+	graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
     auto admin_one = admin_tables.find(owner.value);
     graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
@@ -591,9 +618,10 @@ void nft::setgame(graphenelib::name owner, id_type gameid, id_type status)
     });
 }
 
-void nft::delgame(graphenelib::name owner, id_type gameid) 
+void nft::delgame(std::string strowner, id_type gameid) 
 {
-	graphene_assert(is_account(owner), "issuer account does not exist");
+	graphene_assert(is_account(strowner), "issuer account does not exist");
+	graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
     auto admin_one = admin_tables.find(owner.value);
     graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
@@ -604,9 +632,10 @@ void nft::delgame(graphenelib::name owner, id_type gameid)
     game_tables.erase(game_find);
 }
 
-void nft::addgameattr(graphenelib::name owner, id_type gameid, string key, string value) 
+void nft::addgameattr(std::string strowner, id_type gameid, string key, string value) 
 {
-	graphene_assert(is_account(owner), "issuer account does not exist");
+	graphene_assert(is_account(strowner), "issuer account does not exist");
+	graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
     auto admin_one = admin_tables.find(owner.value);
     graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
@@ -626,9 +655,11 @@ void nft::addgameattr(graphenelib::name owner, id_type gameid, string key, strin
     }); 
 }
 
-void nft::editgameattr(graphenelib::name owner, id_type gameid, string key, string value) 
+void nft::editgameattr(std::string strowner, id_type gameid, string key, string value) 
 {
-	graphene_assert(is_account(owner), "issuer account does not exist");
+	graphene_assert(is_account(strowner), "issuer account does not exist");
+	graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
+
     //require_auth(owner);
     auto admin_one = admin_tables.find(owner.value);
     graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
@@ -648,9 +679,11 @@ void nft::editgameattr(graphenelib::name owner, id_type gameid, string key, stri
     }); 
 }
 
-void nft::delgameattr(graphenelib::name owner, id_type gameid, string key) 
+void nft::delgameattr(std::string strowner, id_type gameid, string key) 
 {
-	graphene_assert(is_account(owner), "issuer account does not exist");
+	graphene_assert(is_account(strowner), "issuer account does not exist");
+	graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
+
     //require_auth(owner);
     auto admin_one = admin_tables.find(owner.value);
     graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
@@ -670,9 +703,10 @@ void nft::delgameattr(graphenelib::name owner, id_type gameid, string key)
     }); 
 }
 
-void nft::addmapping(graphenelib::name owner, id_type fromid, id_type targetid, id_type chainid) 
+void nft::addmapping(std::string strowner, id_type fromid, id_type targetid, id_type chainid) 
 {
-	graphene_assert(is_account(owner), "issuer account does not exist");
+	graphene_assert(is_account(strowner), "issuer account does not exist");
+	graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
     auto admin_one = admin_tables.find(owner.value);
     graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
@@ -718,9 +752,10 @@ void nft::addmapping(graphenelib::name owner, id_type fromid, id_type targetid, 
     });
 }
 
-void nft::delmapping(graphenelib::name owner, id_type fromid, id_type chainid) 
+void nft::delmapping(std::string strowner, id_type fromid, id_type chainid) 
 {
-	graphene_assert(is_account(owner), "issuer account does not exist");
+	graphene_assert(is_account(strowner), "issuer account does not exist");
+	graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
 
     auto admin_one = admin_tables.find(owner.value);
@@ -749,9 +784,10 @@ void nft::delmapping(graphenelib::name owner, id_type fromid, id_type chainid)
     assetmap_tables.erase(nftmap_find);
 }
 
-void nft::createorder(graphenelib::name owner, id_type nftid, contract_asset amount, std::string side, std::string memo)
+void nft::createorder(std::string strowner, id_type nftid, contract_asset amount, std::string side, std::string memo)
 {
-    graphene_assert(is_account(owner), "issuer account does not exist");
+    graphene_assert(is_account(strowner), "issuer account does not exist");
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
 
     //param check
@@ -802,9 +838,10 @@ void nft::createorder(graphenelib::name owner, id_type nftid, contract_asset amo
     });
 }
 
-void nft::cancelorder(graphenelib::name owner, int64_t id)
+void nft::cancelorder(std::string strowner, int64_t id)
 {
-    graphene_assert(is_account(owner), "issuer account does not exist");
+    graphene_assert(is_account(strowner), "issuer account does not exist");
+    graphenelib::name owner = {.value = graphenelib::string_to_name(strowner.c_str())};
     //require_auth(owner);
 
     auto iter = order_tables.find(id);
@@ -827,9 +864,12 @@ void nft::cancelorder(graphenelib::name owner, int64_t id)
     }
 }
 
-void nft::trade(graphenelib::name from, graphenelib::name to, id_type id, std::string memo)
+void nft::trade(std::string strfrom, std::string strto, id_type id, std::string memo)
 {
-    graphene_assert(is_account(from), "issuer account does not exist");
+    graphene_assert(is_account(strfrom), "issuer account does not exist");
+    graphene_assert(is_account(strto), "issuer account does not exist");
+    graphenelib::name from = {.value = graphenelib::string_to_name(strfrom.c_str())};
+    graphenelib::name to = {.value = graphenelib::string_to_name(strto.c_str())};
     //require_auth(from);
     //require_auth(to);
     graphene_assert(memo.size() <= 256, "memo has more than 256 bytes");
@@ -869,7 +909,7 @@ void nft::trade(graphenelib::name from, graphenelib::name to, id_type id, std::s
     }
 	
     //transfer nft to buyer//todo()
-    transfer(from, to, id, memo);
+    transfer(strfrom, strto, id, memo);
     
     //transfer token to seller
     auto price = order_iter->price;

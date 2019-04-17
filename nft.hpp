@@ -23,11 +23,6 @@ typedef uint128_t uuid;
 typedef uint64_t id_type;
 typedef string uri_type;
 
-enum order_side {
-    BUY     =   0, 
-    SELL    =   1
-};
-
 class nft : public contract
 {
   public:
@@ -45,77 +40,77 @@ class nft : public contract
             nftnumber_tables(_self, _self),
             order_tables(_self, _self)
         {
-            contract_owner = get_trx_sender();
+            contract_owner = get_trx_sender();//todo 根据更改默认合约所有者
         }
     
     /// @abi action
-    void addadmin(graphenelib::name admin);
+    void addadmin(std::string admin);
     /// @abi action
-    void deladmin(graphenelib::name admin);
+    void deladmin(std::string admin);
 
     /// @abi action
-    void create(graphenelib::name creator, graphenelib::name owner, std::string explain, std::string worldview);
+    void create(std::string creator, std::string owner, std::string explain, std::string worldview);
     /// @abi action
-    void createother(graphenelib::name creator, graphenelib::name owner, std::string explain, std::string worldview, id_type chainid, id_type targetid);
+    void createother(std::string creator, std::string owner, std::string explain, std::string worldview, id_type chainid, id_type targetid);
     /// @abi action
-    void addnftattr(graphenelib::name owner, id_type nftid, std::string key, std::string value);
+    void addnftattr(std::string owner, id_type nftid, std::string key, std::string value);
     /// @abi action
-    void editnftattr(graphenelib::name owner, id_type nftid, std::string key, std::string value);
+    void editnftattr(std::string owner, id_type nftid, std::string key, std::string value);
     /// @abi action
-    void delnftattr(graphenelib::name owner, id_type nftid, std::string key);
+    void delnftattr(std::string owner, id_type nftid, std::string key);
 
     /// @abi action
-    void addaccauth(graphenelib::name owner, graphenelib::name auth);
+    void addaccauth(std::string owner, std::string auth);
     /// @abi action
-    void delaccauth(graphenelib::name owner);
+    void delaccauth(std::string owner);
     
     /// @abi action
-    void addnftauth(graphenelib::name owner, graphenelib::name auth, id_type id);
+    void addnftauth(std::string owner, std::string auth, id_type id);
     /// @abi action
-    void delnftauth(graphenelib::name owner, id_type id);
+    void delnftauth(std::string owner, id_type id);
     /// @abi action
-    void transfer(graphenelib::name from, graphenelib::name to, id_type id, std::string memo);
+    void transfer(std::string from, std::string to, id_type id, std::string memo);
     /// @abi action
-    void burn(graphenelib::name owner, id_type nftid);
+    void burn(std::string owner, id_type nftid);
 	/// @abi action
-    void addchain(graphenelib::name owner, std::string chain);
+    void addchain(std::string owner, std::string chain);
     /// @abi action
-    void setchain(graphenelib::name owner, id_type chainid, id_type status);
+    void setchain(std::string owner, id_type chainid, id_type status);
     /// @abi action
-    void addcompattr(graphenelib::name owner, id_type id);
+    void addcompattr(std::string owner, id_type id);
     /// @abi action
-    void delcompattr(graphenelib::name owner, id_type id);
+    void delcompattr(std::string owner, id_type id);
     /// @abi action
-    void setcompose(graphenelib::name owner, id_type firid, id_type secid);
+    void setcompose(std::string owner, id_type firid, id_type secid);
     /// @abi action
-    void delcompose(graphenelib::name owner, id_type firid, id_type secid);
+    void delcompose(std::string owner, id_type firid, id_type secid);
 
     /// @abi action
-    void addmapping(graphenelib::name owner, id_type fromid, id_type targetid, id_type chainid);
+    void addmapping(std::string owner, id_type fromid, id_type targetid, id_type chainid);
     /// @abi action
-    void delmapping(graphenelib::name owner, id_type fromid, id_type chainid);
+    void delmapping(std::string owner, id_type fromid, id_type chainid);
    
     /// @abi action
-    void addgame(graphenelib::name owner, std::string name, std::string introduces);
+    void addgame(std::string owner, std::string name, std::string introduces);
     /// @abi action
-    void editgame(graphenelib::name owner, id_type gameid, std::string name, std::string introduces);
+    void editgame(std::string owner, id_type gameid, std::string name, std::string introduces);
     /// @abi action
-    void setgame(graphenelib::name owner, id_type gameid, id_type status);
+    void setgame(std::string owner, id_type gameid, id_type status);
     /// @abi action
-    void delgame(graphenelib::name owner, id_type gameid);
+    void delgame(std::string owner, id_type gameid);
     /// @abi action
-    void addgameattr(graphenelib::name owner, id_type gameid, std::string key, std::string value);
+    void addgameattr(std::string owner, id_type gameid, std::string key, std::string value);
     /// @abi action
-    void editgameattr(graphenelib::name owner, id_type gameid, std::string key, std::string value);
+    void editgameattr(std::string owner, id_type gameid, std::string key, std::string value);
     /// @abi action
-    void delgameattr(graphenelib::name owner, id_type gameid, std::string key);
+    void delgameattr(std::string owner, id_type gameid, std::string key);
  
  	/// @abi action
-    void createorder(graphenelib::name owner, id_type nftid, contract_asset amount, std::string side, std::string memo);
+    void createorder(std::string owner, id_type nftid, contract_asset amount, std::string side, std::string memo);
     /// @abi action
-	void cancelorder(graphenelib::name owner, int64_t id);
+	void cancelorder(std::string owner, int64_t id);
 	/// @abi action
-    void trade(graphenelib::name from, graphenelib::name to, id_type id, std::string memo);
+    void trade(std::string from, std::string to, id_type id, std::string memo);
 
     //@abi table admins i64
     struct admins
@@ -281,6 +276,9 @@ class nft : public contract
         indexed_by< N(bychainid), const_mem_fun< assetmaps, uint64_t, &assetmaps::get_chainid> > >;
     using order_index = multi_index<N(orders), order,
             indexed_by<N(bynftid), const_mem_fun<order, uint64_t, &order::get_nftid> > >;
+
+    private:
+        bool is_account( const std::string & account );
 
     private:
         admins_index        admin_tables;
