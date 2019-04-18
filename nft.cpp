@@ -18,7 +18,7 @@ void nft::addadmin(std::string stradmin)
     auto admin_one = admin_tables.find(admin.value);
     graphene_assert(admin_one == admin_tables.end(), "admin account already authed");
 
-    admin_tables.emplace(_self, [&](auto& admin_data) {
+    admin_tables.emplace(get_trx_sender(), [&](auto& admin_data) {
         admin_data.admin = admin;
     });
 }
@@ -50,7 +50,7 @@ void nft::create(std::string strcreator, std::string strowner, std::string expla
     graphene_assert(admin_one != admin_tables.end(), "admin account is not auth");
 
     id_type index_id = index_tables.available_primary_key();
-    index_tables.emplace(creator, [&](auto& index_data) {
+    index_tables.emplace(get_trx_sender(), [&](auto& index_data) {
         index_data.id = index_id;
         index_data.status = 1;
     });
@@ -58,7 +58,7 @@ void nft::create(std::string strcreator, std::string strowner, std::string expla
     // Create new nft
     //auto time_now = time_point_sec(now());
     auto time_now = get_head_block_time();
-    nft_tables.emplace(creator, [&](auto& nft_data) {
+    nft_tables.emplace(get_trx_sender(), [&](auto& nft_data) {
         nft_data.id = index_id;
         nft_data.creator=creator;
         nft_data.owner = owner;
@@ -70,13 +70,13 @@ void nft::create(std::string strcreator, std::string strowner, std::string expla
 
     auto nft_num = nftnumber_tables.find(owner.value);
     if(nft_num != nftnumber_tables.end()){
-        nftnumber_tables.modify(nft_num, creator, [&](auto& nft_num_data) {
+        nftnumber_tables.modify(nft_num, get_trx_sender(), [&](auto& nft_num_data) {
             nft_num_data.number = nft_num->number+1;
         });
     }
     else 
     {
-        nftnumber_tables.emplace(creator, [&](auto& nft_num_data) {
+        nftnumber_tables.emplace(get_trx_sender(), [&](auto& nft_num_data) {
             nft_num_data.owner = owner;
             nft_num_data.number = 1;
         });   
@@ -105,15 +105,15 @@ void nft::createother(std::string strcreator, std::string strowner, std::string 
     //auto time_now = time_point_sec(now());
     auto time_now = get_head_block_time();
     id_type indexid = index_tables.available_primary_key();
-    index_tables.emplace(creator, [&](auto& index_data) {
+    index_tables.emplace(get_trx_sender(), [&](auto& index_data) {
         index_data.id = indexid;
         index_data.status = 1;
     });
 
     //id_type newid = nft_tables.available_primary_key();
-    nft_tables.emplace(creator, [&](auto& nft_data) {
+    nft_tables.emplace(get_trx_sender(), [&](auto& nft_data) {
         nft_data.id = indexid;
-        nft_data.creator=creator;
+        nft_data.creator = creator;
         nft_data.owner = owner;
         nft_data.auth = owner;
         nft_data.explain = explain;
@@ -122,7 +122,7 @@ void nft::createother(std::string strcreator, std::string strowner, std::string 
         nft_data.worldview = worldview;
     });
 
-    assetmap_tables.emplace(creator, [&](auto& assetmapping_data) {
+    assetmap_tables.emplace(get_trx_sender(), [&](auto& assetmapping_data) {
         assetmapping_data.mappingid = game_tables.available_primary_key();
         assetmapping_data.fromid = indexid;
         assetmapping_data.targetid = targetid;
@@ -131,13 +131,13 @@ void nft::createother(std::string strcreator, std::string strowner, std::string 
 
     auto nftnum = nftnumber_tables.find(owner.value);
     if(nftnum != nftnumber_tables.end()){
-        nftnumber_tables.modify(nftnum,creator, [&](auto& nftnum_data) {
+        nftnumber_tables.modify(nftnum,get_trx_sender(), [&](auto& nftnum_data) {
             nftnum_data.number = nftnum->number+1;
         });
     }
     else 
     {
-        nftnumber_tables.emplace(creator, [&](auto& nftnum_data) {
+        nftnumber_tables.emplace(get_trx_sender(), [&](auto& nftnum_data) {
             nftnum_data.owner = owner;
             nftnum_data.number = 1;
         });   
@@ -158,7 +158,7 @@ void nft::addaccauth(std::string strowner,std::string strauth)
     auto auth_find = accauth_tables.find(owner.value);
     graphene_assert(auth_find == accauth_tables.end(), "owner account already authed");
 
-    accauth_tables.emplace(owner, [&](auto& auth_data) {
+    accauth_tables.emplace(get_trx_sender(), [&](auto& auth_data) {
         auth_data.owner = owner;
         auth_data.auth = auth;
     });
@@ -187,7 +187,7 @@ void nft::addnftattr(std::string strowner, id_type nftid, std::string key, std::
                     [=] (const attrpair& m) -> bool { return key == m.key; });
     graphene_assert(iter == vectAttr.end(), "key is exist");
     vectAttr.push_back({key, value}); 
-    nft_tables.modify(nft_find, owner, [&](auto& attr_data) {
+    nft_tables.modify(nft_find, get_trx_sender(), [&](auto& attr_data) {
         attr_data.attr = vectAttr;
     });
 }
@@ -216,7 +216,7 @@ void nft::editnftattr(std::string strowner, id_type nftid, std::string key, std:
     graphene_assert(iter != vectAttr.end(), "key is not exist");
     iter->value = value;
 
-    nft_tables.modify(nft_find, owner, [&](auto& attr_data) {
+    nft_tables.modify(nft_find, get_trx_sender(), [&](auto& attr_data) {
         attr_data.attr = vectAttr;
     }); 
 }
@@ -245,7 +245,7 @@ void nft::delnftattr(std::string strowner, id_type nftid, string key)
     graphene_assert(iter != vectAttr.end(), "key is not exist");
     vectAttr.erase(iter);
 
-    nft_tables.modify(nft_find, owner, [&](auto& attr_data) {
+    nft_tables.modify(nft_find, get_trx_sender(), [&](auto& attr_data) {
         attr_data.attr = vectAttr;
     }); 
 }
@@ -279,7 +279,7 @@ void nft::addnftauth(std::string strowner, std::string strauth, id_type id)
         graphene_assert(nft_accauth_find->auth != owner, "account has not auth");         
     }
 
-    nft_tables.modify(nft_find_id, owner, [&](auto& nft_data) {
+    nft_tables.modify(nft_find_id, get_trx_sender(), [&](auto& nft_data) {
         nft_data.auth = auth;
     });    
 }
@@ -299,7 +299,7 @@ void nft::delnftauth(std::string strowner, id_type id)
         graphene_assert(nft_accauth_find->auth != owner, "account has not auth");         
     }
 
-    nft_tables.modify(nft_find_id, owner, [&](auto& nft_data) {
+    nft_tables.modify(nft_find_id, get_trx_sender(), [&](auto& nft_data) {
         nft_data.auth = owner;
     });    
 }
@@ -326,14 +326,14 @@ void nft::transfer(std::string strfrom, std::string strto, id_type id, string me
         }       
     }
 
-    nft_tables.modify(nft_find_id, from, [&](auto& nft_data) {
+    nft_tables.modify(nft_find_id, get_trx_sender(), [&](auto& nft_data) {
         nft_data.auth = to;
         nft_data.owner = to;
      });
 
     auto nftnum = nftnumber_tables.find(owner_nft.value);
     if(nftnum->number != 1){
-            nftnumber_tables.modify(nftnum,from, [&](auto& nftnum_data) {
+            nftnumber_tables.modify(nftnum,get_trx_sender(), [&](auto& nftnum_data) {
             nftnum_data.number = nftnum->number-1;
         });
     }
@@ -344,13 +344,13 @@ void nft::transfer(std::string strfrom, std::string strto, id_type id, string me
 
     auto nfttonum = nftnumber_tables.find(to.value);
     if(nfttonum != nftnumber_tables.end()){
-        nftnumber_tables.modify(nfttonum, from, [&](auto& nftnum_data) {
+        nftnumber_tables.modify(nfttonum, get_trx_sender(), [&](auto& nftnum_data) {
             nftnum_data.number = nfttonum->number+1;
         });
     }
     else 
     {
-        nftnumber_tables.emplace(from, [&](auto& nftnum_data) {
+        nftnumber_tables.emplace(get_trx_sender(), [&](auto& nftnum_data) {
             nftnum_data.owner = to;
             nftnum_data.number = 1;
         });   
@@ -371,7 +371,7 @@ void nft::burn(std::string strowner, id_type nftid)
     nft_tables.erase(nft_find);
     auto nftnum = nftnumber_tables.find(nft_find->owner.value);
     if(nftnum->number != 1){
-        nftnumber_tables.modify(nftnum,owner, [&](auto& nftnum_data) {
+        nftnumber_tables.modify(nftnum, get_trx_sender(), [&](auto& nftnum_data) {
             nftnum_data.number = nftnum->number-1;
         });
     }
@@ -382,7 +382,7 @@ void nft::burn(std::string strowner, id_type nftid)
 
     auto index_id = index_tables.find(nftid);
     graphene_assert(index_id != index_tables.end(), "nft index does not exist");
-    index_tables.modify(index_id, _self, [&](auto& index_data) {
+    index_tables.modify(index_id, get_trx_sender(), [&](auto& index_data) {
         index_data.status = 0;
     }); 
 
@@ -437,7 +437,7 @@ void nft::addchain(std::string strowner,string chain)
 	}
 
 	graphene_assert(found, "chain is exists");
-    nftchain_tables.emplace(owner, [&](auto& nftchain_data) {
+    nftchain_tables.emplace(get_trx_sender(), [&](auto& nftchain_data) {
         nftchain_data.chainid = nftchain_tables.available_primary_key();
         nftchain_data.chain = chain;
         nftchain_data.status = 1;  
@@ -459,7 +459,7 @@ void nft::setchain(std::string strowner,id_type chainid,id_type status)
     bool statusOk = ((status == 0 || status == 1) ? true : false);
 
     graphene_assert(statusOk, "status must eq 0 or 1");
-    nftchain_tables.modify(nftchain_find, owner, [&](auto& nftchain_data) {
+    nftchain_tables.modify(nftchain_find, get_trx_sender(), [&](auto& nftchain_data) {
         nftchain_data.status = status;  
     });
 }
@@ -478,7 +478,7 @@ void nft::addcompattr(std::string strowner, id_type id)
     auto nft_find = composeattr_tables.find(id);
     graphene_assert(nft_find != composeattr_tables.end(), "id can not support compose");
     
-    composeattr_tables.emplace(owner, [&](auto& composeattr_data) {
+    composeattr_tables.emplace(get_trx_sender(), [&](auto& composeattr_data) {
         composeattr_data.nftid = id;  
     });     
 }
@@ -527,7 +527,7 @@ void nft::setcompose(std::string strowner, id_type firid, id_type secid)
 	}
 
 	graphene_assert(found, "group is exists");
-    compose_tables.emplace(owner, [&](auto& compose_data) {
+    compose_tables.emplace(get_trx_sender(), [&](auto& compose_data) {
         compose_data.id = compose_tables.available_primary_key();
         compose_data.firid = firid;
         compose_data.secid = secid;
@@ -589,7 +589,7 @@ void nft::addgame(std::string strowner, std::string gamename, std::string introd
 	graphene_assert(found, "gamename is exists");
     //auto time_now = time_point_sec(now());
     auto time_now = get_head_block_time();
-    game_tables.emplace(owner, [&](auto& game_data) {
+    game_tables.emplace(get_trx_sender(), [&](auto& game_data) {
         game_data.gameid = game_tables.available_primary_key();
         game_data.gamename = gamename;
         game_data.introduces = introduces;
@@ -611,7 +611,7 @@ void nft::editgame(std::string strowner, id_type gameid, std::string gamename, s
     auto game_find = game_tables.find(gameid);
     graphene_assert(game_find != game_tables.end(), "game id is not exist");
 
-    game_tables.modify(game_find,owner, [&](auto& game_data) {
+    game_tables.modify(game_find, get_trx_sender(), [&](auto& game_data) {
         game_data.gamename = gamename;
         game_data.introduces = introduces;
     });
@@ -631,7 +631,7 @@ void nft::setgame(std::string strowner, id_type gameid, id_type status)
     auto game_find = game_tables.find(gameid);
     graphene_assert(game_find != game_tables.end(), "gameid is not exist");
 
-    game_tables.modify(game_find,owner, [&](auto& game_data) {
+    game_tables.modify(game_find, get_trx_sender(), [&](auto& game_data) {
         game_data.status = status;
     });
 }
@@ -668,7 +668,7 @@ void nft::addgameattr(std::string strowner, id_type gameid, string key, string v
     graphene_assert(iter == vectAttr.end(), "key is exist");
 	vectAttr.push_back({key, value});
 
-    game_tables.modify(game_find, owner, [&](auto& attr_data) {
+    game_tables.modify(game_find, get_trx_sender(), [&](auto& attr_data) {
         attr_data.gameattr = vectAttr;
     }); 
 }
@@ -692,7 +692,7 @@ void nft::editgameattr(std::string strowner, id_type gameid, string key, string 
     graphene_assert(iter != vectAttr.end(), "key is not exist");
     iter->value = value;
     
-    game_tables.modify(game_find, owner, [&](auto& attr_data) {
+    game_tables.modify(game_find, get_trx_sender(), [&](auto& attr_data) {
         attr_data.gameattr = vectAttr;
     }); 
 }
@@ -716,7 +716,7 @@ void nft::delgameattr(std::string strowner, id_type gameid, string key)
     graphene_assert(iter != vectAttr.end(), "key is not exist");
     vectAttr.erase(iter);
 
-    game_tables.modify(game_find, owner, [&](auto& attr_data) {
+    game_tables.modify(game_find, get_trx_sender(), [&](auto& attr_data) {
         attr_data.gameattr = vectAttr;
     }); 
 }
@@ -762,7 +762,7 @@ void nft::addmapping(std::string strowner, id_type fromid, id_type targetid, id_
 
 	graphene_assert(found, "nftmapping_from is exists");
 
-    assetmap_tables.emplace(owner, [&](auto& assetmapping_data) {
+    assetmap_tables.emplace(get_trx_sender(), [&](auto& assetmapping_data) {
         assetmapping_data.mappingid = assetmap_tables.available_primary_key();
         assetmapping_data.fromid = fromid;
         assetmapping_data.targetid = targetid;
@@ -845,7 +845,7 @@ void nft::createorder(std::string strowner, id_type nftid, contract_asset amount
         // ).send();
     }
 
-    order_tables.emplace(owner, [&](auto& order) {
+    order_tables.emplace(get_trx_sender(), [&](auto& order) {
         order.id = order_tables.available_primary_key();
         order.nftid = nftid;
         order.owner = owner;
@@ -908,7 +908,7 @@ void nft::trade(std::string strfrom, std::string strto, id_type id, std::string 
     auto from_nftnum = nftnumber_tables.find(from.value);
     graphene_assert(from_nftnum != nftnumber_tables.end(), "from account nft number does not exist");
     if(from_nftnum->number != 1) {
-        nftnumber_tables.modify(from_nftnum, from, [&](auto& nftnum_data) {
+        nftnumber_tables.modify(from_nftnum, get_trx_sender(), [&](auto& nftnum_data) {
             nftnum_data.number = from_nftnum->number-1;
         });
     } else {
@@ -919,7 +919,7 @@ void nft::trade(std::string strfrom, std::string strto, id_type id, std::string 
     auto to_nftnum = nftnumber_tables.find(to.value);
     graphene_assert(to_nftnum != nftnumber_tables.end(), "to account nft number does not exist");
     if(to_nftnum->number != 1) {
-        nftnumber_tables.modify(to_nftnum, to, [&](auto& nftnum_data) {
+        nftnumber_tables.modify(to_nftnum, get_trx_sender(), [&](auto& nftnum_data) {
             nftnum_data.number = to_nftnum->number+1;
         });
     } else {

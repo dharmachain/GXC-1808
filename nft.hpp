@@ -23,7 +23,6 @@ typedef uint128_t uuid;
 typedef uint64_t id_type;
 typedef string uri_type;
 
-std::string my_owner_name = "damo-test";//todo 根据更改默认合约所有者
 
 class nft : public contract
 {
@@ -42,6 +41,7 @@ class nft : public contract
             nftnumber_tables(_self, _self),
             order_tables(_self, _self)
         {
+            std::string my_owner_name = "damo-test";//todo 根据更改默认合约所有者
             if (is_account(my_owner_name)) {
                 int64_t account_id = get_account_id(
                     my_owner_name.c_str(),
