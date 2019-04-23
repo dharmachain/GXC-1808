@@ -122,8 +122,8 @@ class nft : public contract
     //@abi table admins i64
     struct admins
     {
-        graphenelib::name admin;
-        uint64_t primary_key() const { return admin.value; }
+        int64_t admin;
+        uint64_t primary_key() const { return admin; }
     };
 
     //@abi table nftindexs i64
@@ -138,9 +138,9 @@ class nft : public contract
     //@abi table nftnumber i64
     struct nftnumber
     {
-        graphenelib::name owner;
+        int64_t owner;
         id_type number;
-        uint64_t primary_key() const { return owner.value; }
+        uint64_t primary_key() const { return owner; }
     };
 
     struct attrpair{
@@ -152,17 +152,17 @@ class nft : public contract
     struct nftts
     {
         id_type id;
-        graphenelib::name creator;
-        graphenelib::name owner;
-        graphenelib::name auth;
+        int64_t creator;
+        int64_t owner;
+        int64_t auth;
         std::string explain;
         uint64_t createtime;
         std::string worldview;
         std::vector<attrpair> attr;
 
         uint64_t primary_key() const { return id; }
-        uint64_t get_owner() const { return owner.value; }
-        uint64_t get_creator() const { return creator.value; }
+        uint64_t get_owner() const { return owner; }
+        uint64_t get_creator() const { return creator; }
         
     };
 
@@ -176,10 +176,10 @@ class nft : public contract
     //@abi table accauth i64
     struct accauth 
     {
-        graphenelib::name owner;
-        graphenelib::name auth;
-        uint64_t primary_key() const { return owner.value; }
-        uint64_t get_auth() const { return auth.value; }
+        int64_t owner;
+        int64_t auth;
+        uint64_t primary_key() const { return owner; }
+        uint64_t get_auth() const { return auth; }
     };
 
     //@abi table nftchains i64
@@ -239,7 +239,7 @@ class nft : public contract
    {
         int64_t         id;
         id_type         nftid;
-        graphenelib::name            owner;
+        int64_t         owner;
         contract_asset  price;
         std::string     side;
         std::string     memo;
