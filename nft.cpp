@@ -134,9 +134,7 @@ void nft::createother(std::string strcreator, std::string strowner, std::string 
         nftnumber_tables.modify(nftnum,get_trx_sender(), [&](auto& nftnum_data) {
             nftnum_data.number = nftnum->number+1;
         });
-    }
-    else 
-    {
+    } else {
         nftnumber_tables.emplace(get_trx_sender(), [&](auto& nftnum_data) {
             nftnum_data.owner = owner;
             nftnum_data.number = 1;
@@ -304,7 +302,7 @@ void nft::delnftauth(std::string strowner, id_type id)
     });    
 }
 
-void nft::transfer(std::string strfrom, std::string strto, id_type id, string memo)
+void nft::transfernft(std::string strfrom, std::string strto, id_type id, string memo)
 {
     //require_auth(from);
     graphene_assert(is_account(strfrom), "from auth does not exist");
@@ -752,8 +750,6 @@ void nft::addmapping(std::string strowner, id_type fromid, id_type targetid, id_
 
     bool found = true;
 	for(; it != assetmapping_data.end() && it->fromid==fromid; ++it){
-        // print(it->fromid);
-        // //print(it->mappingid);
 		if(it->chainid == chainid) {
 			found = false;
 			break;
@@ -802,6 +798,12 @@ void nft::delmapping(std::string strowner, id_type fromid, id_type chainid)
     assetmap_tables.erase(nftmap_find);
 }
 
+void nft::orderclean(id_type orderid) {
+    auto iter = order_tables.find(orderid);
+    graphene_assert(iter != order_tables.end(), std::string(std::to_string(orderid) + ", orderclean failed, order is not exist").c_str() );
+    order_tables.erase(iter);
+}
+
 void nft::createorder(std::string strowner, id_type nftid, contract_asset amount, std::string side, std::string memo)
 {
     graphene_assert(is_account(strowner), "owner account does not exist");
@@ -825,8 +827,8 @@ void nft::createorder(std::string strowner, id_type nftid, contract_asset amount
 
     if (side == "sell") {
         graphene_assert(asset_iter->owner == owner, "can't sell other nft asset");
-        auto order_data = order_tables.get_index<N(bynftid)>();
-        auto iter = order_data.lower_bound(nftid);
+        auto order_data = order_tables.get_index<N(byowner)>();
+        auto iter = order_data.lower_bound(owner);
         bool isValid = true;
         for( ; iter != order_data.end() && iter->nftid == nftid; ++iter){
             if(iter->side == "sell") {
@@ -837,12 +839,6 @@ void nft::createorder(std::string strowner, id_type nftid, contract_asset amount
         graphene_assert(isValid, "nft sell order is not valid");
     } else {
         graphene_assert(asset_iter->owner != owner, "Can't buy your own nft asset");
-        //transfer GXC from owner to _self//todo()
-        // action(
-        //     permission_level{ owner, "active"_n },
-        //     "eosio.token"_n, "transfer"_n,
-        //     std::make_tuple(owner, _self, amount, memo)
-        // ).send();
     }
 
     order_tables.emplace(get_trx_sender(), [&](auto& order) {
@@ -856,14 +852,14 @@ void nft::createorder(std::string strowner, id_type nftid, contract_asset amount
     });
 }
 
-void nft::cancelorder(std::string strowner, int64_t id)
+void nft::cancelorder(std::string strowner, id_type id, std::string memo)
 {
     graphene_assert(is_account(strowner), "owner account does not exist");
     int64_t owner = get_account_id(strowner.c_str(), strowner.length());
     //require_auth(owner);
 
     auto iter = order_tables.find(id);
-    graphene_assert(iter != order_tables.end(), "order is not exist");
+    graphene_assert(iter != order_tables.end(), std::string(std::to_string(id) + ", cancel failed, order is not exist, " + memo).c_str() );
     graphene_assert(iter->owner == owner, "owner is not equal");
     auto status_iter = index_tables.find(iter->nftid);
     graphene_assert(status_iter != index_tables.end(), "nft index does not exist");
@@ -871,76 +867,197 @@ void nft::cancelorder(std::string strowner, int64_t id)
     order_tables.erase(iter);
 
     //transfer token//todo
-    auto price = iter->price;
-    int64_t fee_amount = 1;  //0.00001 GXC
-    if (price.amount > 1) {
-        price.amount = price.amount - fee_amount;
-        // action(permission_level{ _self, "active"_n },
-        //     "eosio.token"_n, "transfer"_n,
-        //     std::make_tuple(_self, owner, price, std::string("cancel order")))
-        // .send();
+    if(iter->side == "buy") {
+        //action(permission_level{ _self, "active"_n },
+        //    "eosio.token"_n, "transfer"_n,
+        //    std::make_tuple(_self, owner, iter->price, std::string("cancel order")))
+        //.send();
     }
 }
 
-void nft::trade(std::string strfrom, std::string strto, id_type id, std::string memo)
+void nft::trade(std::string strfrom, std::string strto, id_type orderid, const std::string& side, const std::string& memo)
 {
     graphene_assert(is_account(strfrom), "from account does not exist");
     graphene_assert(is_account(strto), "to account does not exist");
-    int64_t from = get_account_id(strfrom.c_str(), strfrom.length());
+    graphene_assert(side == "buy" || side == "sell", "side must be buy or sell");
+	int64_t from = get_account_id(strfrom.c_str(), strfrom.length());
     int64_t to = get_account_id(strto.c_str(), strto.length());
     //require_auth(from);
     //require_auth(to);
     graphene_assert(memo.size() <= 256, "memo has more than 256 bytes");
 
-    auto order_iter = order_tables.find(id);
-    graphene_assert(order_iter != order_tables.end(), "order is not exist");
-    order_tables.erase(order_iter);
+    auto iter = order_tables.find(orderid);
+    graphene_assert(iter != order_tables.end(), std::string(std::to_string(orderid) + ", trade failed, order is not exist").c_str() );
+    order_tables.erase(iter);
 
-    auto nft_iter = nft_tables.find(id);
-    graphene_assert(nft_iter != nft_tables.end(), "nft asset is not exist");
-    graphene_assert(nft_iter->owner == from, "owner is not equal");
-
-    auto status_iter = index_tables.find(id);
+    auto status_iter = index_tables.find(iter->nftid);
     graphene_assert(status_iter != index_tables.end(), "nft index does not exist");
     graphene_assert(status_iter->status == 1, "nft status is close");
 
-    //from account nft number -1
-    auto from_nftnum = nftnumber_tables.find(from);
-    graphene_assert(from_nftnum != nftnumber_tables.end(), "from account nft number does not exist");
-    if(from_nftnum->number != 1) {
-        nftnumber_tables.modify(from_nftnum, get_trx_sender(), [&](auto& nftnum_data) {
-            nftnum_data.number = from_nftnum->number-1;
+
+    auto nft_iter = nft_tables.find(iter->nftid);
+    graphene_assert(nft_iter != nft_tables.end(), "nft asset is not exist");
+    if (iter->side == "buy" && side == "sell") {
+        graphene_assert(nft_iter->owner == to, "buy order, owner is not equal to account");
+    } else if (iter->side == "sell" && side == "buy") {
+        graphene_assert(nft_iter->owner == iter->owner, "sell order, owner is not equal from account");
+    } else {
+        graphene_assert(false, "invalid side");
+    }
+    nft_tables.modify(nft_iter, _self, [&](auto& nft_data) {
+        nft_data.auth = to;
+        nft_data.owner = to;
+     });
+
+    //from nft number -1
+    auto nftnum = nftnumber_tables.find(from);
+    if(nftnum->number != 1) {
+        nftnumber_tables.modify(nftnum, get_trx_sender(), [&](auto& nftnum_data) {
+            nftnum_data.number = nftnum->number - 1;
         });
     } else {
-        nftnumber_tables.erase(from_nftnum);
+        nftnumber_tables.erase(nftnum);
     }
 
-    //to account nft number +1
-    auto to_nftnum = nftnumber_tables.find(to);
-    graphene_assert(to_nftnum != nftnumber_tables.end(), "to account nft number does not exist");
-    if(to_nftnum->number != 1) {
-        nftnumber_tables.modify(to_nftnum, get_trx_sender(), [&](auto& nftnum_data) {
-            nftnum_data.number = to_nftnum->number+1;
+    //to nft number +1
+    auto nfttonum = nftnumber_tables.find(to);
+    if(nfttonum != nftnumber_tables.end()) {
+        nftnumber_tables.modify(nfttonum, get_trx_sender(), [&](auto& nftnum_data) {
+            nftnum_data.number = nfttonum->number + 1;
         });
     } else {
-        nftnumber_tables.erase(to_nftnum);
+        nftnumber_tables.emplace(to, [&](auto& nftnum_data) {
+            nftnum_data.owner = to;
+            nftnum_data.number = 1;
+        });   
     }
-	
-    //transfer nft to buyer//todo()
-    transfer(strfrom, strto, id, memo);
-    
-    //transfer token to seller
-    auto price = order_iter->price;
-    int64_t fee_amount = 1;  //fee 0.00001 GXC
-    if (price.amount > 1) {
-        price.amount = price.amount - fee_amount;
-        // action(permission_level{ _self, "active"_n },
-        //     "eosio.token"_n, "transfer"_n,
-        //     std::make_tuple(_self, from, price, memo))
-        // .send();
+
+    auto amount = iter->price;
+    amount.amount = amount.amount - FEE;
+    if (amount.amount > 0) {
+	    //todo()
+        //action(permission_level{ _self, "active"_n },
+        //    "eosio.token"_n, "transfer"_n,
+        //    std::make_tuple(_self, from, amount, memo))
+        //.send();
     }
 }
 
-GRAPHENE_ABI(nft, (addadmin)(deladmin)(create)(createother)(addnftattr)(editnftattr)(delnftattr)(addaccauth)(delaccauth)(addnftauth)(delnftauth)
-     (transfer)(addchain)(setchain)(addcompattr)(delcompattr)(setcompose)(delcompose)(addgame)(setgame)(editgame)
-     (delgame)(addgameattr)(editgameattr)(delgameattr)(addmapping)(delmapping)(burn)(createorder)(cancelorder)(trade))
+void nft::parse_memo(std::string memo, std::string& action, std::map<std::string, std::string>& params) {
+    // remove space
+    memo.erase(std::remove_if(memo.begin(), memo.end(), [](unsigned char x) { 
+            return std::isspace(x); }), memo.end());
+
+    size_t pos;
+    std::string container;
+    pos = sub2sep(memo, container, '-', 0, true);
+    graphene_assert(!container.empty(), "no action");
+    action = container;
+    if (container == "order") {
+        pos = sub2sep(memo, container, '-', ++pos, true);
+        graphene_assert(!container.empty(), "no owner");
+        params["owner"] = container;
+
+        pos = sub2sep(memo, container, '-', ++pos, true);
+        graphene_assert(!container.empty(), "no nft id");
+        params["nftid"] = container;
+
+        pos = sub2sep(memo, container, '-', ++pos, true);
+        graphene_assert(!container.empty(), "no price");
+        params["price"] = container;
+
+        pos = sub2sep(memo, container, '-', ++pos, true);
+        graphene_assert(!container.empty(), "no side");
+        graphene_assert(container == "buy" || container == "sell", "side must be buy or sell");
+        params["side"] = container;
+    } else if (container == "trade") {
+        pos = sub2sep(memo, container, '-', ++pos, true);
+        graphene_assert(!container.empty(), "no from account");
+        params["from"] = container;
+
+        pos = sub2sep(memo, container, '-', ++pos, true);
+        graphene_assert(!container.empty(), "no to account");
+        params["to"] = container;
+
+        pos = sub2sep(memo, container, '-', ++pos, true);
+        graphene_assert(!container.empty(), "no order id");
+        params["id"] = container;
+
+        pos = sub2sep(memo, container, '-', ++pos, true);
+        graphene_assert(!container.empty(), "no side");
+        graphene_assert(container == "buy" || container == "sell", "side must be buy or sell");
+        params["side"] = container;
+    } else if (container == "cancel") {
+        pos = sub2sep(memo, container, '-', ++pos, true);
+        graphene_assert(!container.empty(), "no from account");
+        params["owner"] = container;
+
+        pos = sub2sep(memo, container, '-', ++pos, true);
+        graphene_assert(!container.empty(), "no order id");
+        params["id"] = container;
+    }
+}
+
+void nft::transfer(std::string strfrom, std::string strto, const contract_asset& quantity, const std::string& memo) {
+    graphene_assert(is_account(strfrom), "from account does not exist");
+    graphene_assert(is_account(strto), "to account does not exist");
+    //graphene_assert(quantity.symbol.is_valid(), "invalid symbol name");
+    //graphene_assert(quantity.symbol.code() == "EOS", "transfer must be EOS");
+    graphene_assert(quantity.amount >= FEE, "transfer fee too small");
+    graphene_assert(memo.size() <= 256 && !memo.empty(), "memo has more than 256 bytes or is empty");
+    int64_t from = get_account_id(strfrom.c_str(), strfrom.length());
+    int64_t to = get_account_id(strto.c_str(), strto.length());
+
+    if (from == _self || to != _self) {
+        return;
+    }
+
+    std::map<std::string, std::string> params;
+    std::string action;
+    parse_memo(memo, action, params);
+    graphene_assert(action == "order" || action == "trade" || action == "cancel", "memo action error");
+    graphene_assert(params.size() > 0, "memo error");
+
+    if(action == "order") {
+        graphene_assert(params.find("owner") != params.end() && params.find("nftid") != params.end()
+            && params.find("price") != params.end() && params.find("side") != params.end(), 
+            "create order param error");
+        std::string owner = params["owner"];
+        std::string id = params["nftid"];
+        uint64_t nftid = stoi(id);
+        std::string price = params["price"];
+        uint64_t nPrice = stoi(price);
+        std::string side = params["side"];
+        auto amount = quantity;
+        if (side == "buy") {
+            graphene_assert(amount.amount == nPrice, "buy nft, transfer quantity not equal price");
+        } else {
+            amount.amount = nPrice;
+        }
+        createorder(owner, nftid, amount, side, memo);
+    } else if(action == "trade") {
+        graphene_assert(params.find("from") != params.end() && params.find("to") != params.end()
+            && params.find("id") != params.end() && params.find("side") != params.end(),
+            "trade param error");
+        std::string id = params["id"];
+        uint64_t order_id = stoi(id);
+        if(params["side"] == "buy") {
+            graphene_assert(strfrom == params["to"], "transfer from not equal memo to account");
+        } else {
+            graphene_assert(strfrom == params["from"], "transfer from not equal memo from account");
+        }
+        trade(params["from"], params["to"], order_id, params["side"], memo);
+    } else if(action == "cancel") {
+        graphene_assert(params.find("owner") != params.end() && params.find("id") != params.end(), 
+            "cancel order param error");
+        graphene_assert(quantity.amount >= FEE, "cancel order, fee not enough");
+        graphene_assert(strfrom == params["owner"], "transfer from not equal memo owner");
+        std::string id = params["id"];
+        uint64_t order_id = stoi(id);
+        cancelorder(params["owner"], order_id, memo);
+    }
+}
+GRAPHENE_ABI(nft, (addadmin)(deladmin)(create)(createother)(addnftattr)(editnftattr)(delnftattr)(addaccauth)
+    (delaccauth)(addnftauth)(delnftauth)(transfer)(addchain)(setchain)(addcompattr)(delcompattr)(setcompose)
+    (delcompose)(addgame)(setgame)(editgame)(delgame)(addgameattr)(editgameattr)(delgameattr)(addmapping)
+    (delmapping)(burn)(orderclean))

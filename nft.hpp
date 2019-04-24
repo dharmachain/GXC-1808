@@ -19,10 +19,25 @@ using namespace std;
 #include <string>
 #include <vector>
 #include <map>
+#include <utility>
 typedef uint128_t uuid;
 typedef uint64_t id_type;
 typedef string uri_type;
 
+int64_t FEE = 1;  //0.00001 GXC
+
+size_t sub2sep( const std::string& input, std::string& output, const char& separator,
+    const size_t& first_pos = 0, const bool& required = false ) {
+
+    graphene_assert(first_pos != std::string::npos, "invalid first pos");
+    auto pos = input.find(separator, first_pos);
+    if (pos == std::string::npos) {
+        graphene_assert(!required, "parse memo error");
+        return std::string::npos;
+    }
+    output = input.substr(first_pos, pos - first_pos);
+    return pos;
+}
 
 class nft : public contract
 {
@@ -76,7 +91,7 @@ class nft : public contract
     /// @abi action
     void delnftauth(std::string owner, id_type id);
     /// @abi action
-    void transfer(std::string from, std::string to, id_type id, std::string memo);
+    void transfernft(std::string from, std::string to, id_type id, std::string memo);
     /// @abi action
     void burn(std::string owner, id_type nftid);
 	/// @abi action
@@ -112,12 +127,12 @@ class nft : public contract
     /// @abi action
     void delgameattr(std::string owner, id_type gameid, std::string key);
  
- 	/// @abi action
-    void createorder(std::string owner, id_type nftid, contract_asset amount, std::string side, std::string memo);
-    /// @abi action
-	void cancelorder(std::string owner, int64_t id);
+
 	/// @abi action
-    void trade(std::string from, std::string to, id_type id, std::string memo);
+    void orderclean(id_type orderid);
+	/// @abi action
+    void transfer(std::string from, std::string to, const contract_asset& quantity, const std::string& memo);
+ 
 
     //@abi table admins i64
     struct admins
@@ -237,16 +252,17 @@ class nft : public contract
    //@abi table order i64
    struct order 
    {
-        int64_t         id;
-        id_type         nftid;
+        id_type         id;
         int64_t         owner;
+        id_type         nftid;
+        
         contract_asset  price;
         std::string     side;
         std::string     memo;
         uint64_t        createtime;
 
         uint64_t primary_key() const { return id; }
-        uint64_t get_nftid() const { return nftid; }
+        uint64_t get_owner() const { return nftid; }
     };
 
     using admins_index = multi_index<N(admins), admins>;
@@ -282,11 +298,9 @@ class nft : public contract
         indexed_by< N(bytargetid), const_mem_fun< assetmaps, uint64_t, &assetmaps::get_targetid> >,
         indexed_by< N(bychainid), const_mem_fun< assetmaps, uint64_t, &assetmaps::get_chainid> > >;
     using order_index = multi_index<N(orders), order,
-            indexed_by<N(bynftid), const_mem_fun<order, uint64_t, &order::get_nftid> > >;
+            indexed_by<N(byowner), const_mem_fun<order, uint64_t, &order::get_owner> > >;
 
-    private:
-        bool is_account( const std::string & account );        
-        bool is_contract_ownner( const int64_t& account_id );
+
 
     private:
         admins_index        admin_tables;
@@ -302,4 +316,13 @@ class nft : public contract
         order_index         order_tables;
 
         int64_t             contract_owner_id = 0;
+		
+    private:
+    void createorder(std::string owner, id_type nftid, contract_asset amount, std::string side, std::string memo);
+    void cancelorder(std::string owner, id_type id, std::string memo);
+    void trade(std::string from, std::string to, id_type orderid, const std::string& side, const std::string& memo);
+
+    void parse_memo(std::string memo, std::string& action, std::map<std::string, std::string>& params);
+    bool is_account( const std::string & account );        
+    bool is_contract_ownner( const int64_t& account_id );
 };
