@@ -798,12 +798,6 @@ void nft::delmapping(std::string strowner, id_type fromid, id_type chainid)
     assetmap_tables.erase(nftmap_find);
 }
 
-void nft::orderclean(id_type orderid) {
-    auto iter = order_tables.find(orderid);
-    graphene_assert(iter != order_tables.end(), std::string(std::to_string(orderid) + ", orderclean failed, order is not exist").c_str() );
-    order_tables.erase(iter);
-}
-
 void nft::createorder(std::string strowner, id_type nftid, contract_asset amount, std::string side, std::string memo)
 {
     graphene_assert(is_account(strowner), "owner account does not exist");
@@ -929,13 +923,13 @@ void nft::trade(std::string strfrom, std::string strto, id_type orderid, const s
         nftnumber_tables.emplace(to, [&](auto& nftnum_data) {
             nftnum_data.owner = to;
             nftnum_data.number = 1;
-        });   
+        });
     }
 
     auto amount = iter->price;
     amount.amount = amount.amount - FEE;
     if (amount.amount > 0) {
-	    //todo()
+	    //todo()实现合约内部充值转账GXC功能
         //action(permission_level{ _self, "active"_n },
         //    "eosio.token"_n, "transfer"_n,
         //    std::make_tuple(_self, from, amount, memo))
@@ -1001,8 +995,9 @@ void nft::parse_memo(std::string memo, std::string& action, std::map<std::string
 void nft::transfer(std::string strfrom, std::string strto, const contract_asset& quantity, const std::string& memo) {
     graphene_assert(is_account(strfrom), "from account does not exist");
     graphene_assert(is_account(strto), "to account does not exist");
+    //todo()增加使用asset结构体如{1.00, 'GXC'}，
     //graphene_assert(quantity.symbol.is_valid(), "invalid symbol name");
-    //graphene_assert(quantity.symbol.code() == "EOS", "transfer must be EOS");
+    //check(quantity.symbol.code().to_string() == "EOS", "currency must be EOS");
     graphene_assert(quantity.amount >= FEE, "transfer fee too small");
     graphene_assert(memo.size() <= 256 && !memo.empty(), "memo has more than 256 bytes or is empty");
     int64_t from = get_account_id(strfrom.c_str(), strfrom.length());
@@ -1058,6 +1053,6 @@ void nft::transfer(std::string strfrom, std::string strto, const contract_asset&
     }
 }
 GRAPHENE_ABI(nft, (addadmin)(deladmin)(create)(createother)(addnftattr)(editnftattr)(delnftattr)(addaccauth)
-    (delaccauth)(addnftauth)(delnftauth)(transfer)(addchain)(setchain)(addcompattr)(delcompattr)(setcompose)
+    (delaccauth)(addnftauth)(delnftauth)(transfernft)(addchain)(setchain)(addcompattr)(delcompattr)(setcompose)
     (delcompose)(addgame)(setgame)(editgame)(delgame)(addgameattr)(editgameattr)(delgameattr)(addmapping)
-    (delmapping)(burn)(orderclean))
+    (delmapping)(burn))

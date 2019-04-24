@@ -129,8 +129,6 @@ class nft : public contract
  
 
 	/// @abi action
-    void orderclean(id_type orderid);
-	/// @abi action
     void transfer(std::string from, std::string to, const contract_asset& quantity, const std::string& memo);
  
 
