@@ -54,7 +54,8 @@ class nft : public contract
             composeattr_tables(_self, _self),
             index_tables(_self, _self),
             nftnumber_tables(_self, _self),
-            order_tables(_self, _self)
+            order_tables(_self, _self),
+            accounts(_self, _self)
         {
             std::string my_owner_name = "damo-test";//todo 根据更改默认合约所有者
             if (is_account(my_owner_name)) {
@@ -131,6 +132,12 @@ class nft : public contract
 	/// @abi action
     void transfer(std::string from, std::string to, const contract_asset& quantity, const std::string& memo);
  
+    // @abi action
+    // @abi payable
+    void deposit();
+    // @abi action
+    void withdraw(std::string to_account, contract_asset amount);
+
 
     //@abi table admins i64
     struct admins
@@ -263,6 +270,16 @@ class nft : public contract
         uint64_t get_owner() const { return nftid; }
     };
 
+    //@abi table account i64
+    struct account {
+        uint64_t owner;
+        std::vector<contract_asset> balances;
+
+        uint64_t primary_key() const { return owner; }
+
+        GRAPHENE_SERIALIZE(account, (owner)(balances))
+    };
+
     using admins_index = multi_index<N(admins), admins>;
 
     using nftindex_index = multi_index<N(nftindexs), nftindexs,
@@ -298,7 +315,7 @@ class nft : public contract
     using order_index = multi_index<N(orders), order,
             indexed_by<N(byowner), const_mem_fun<order, uint64_t, &order::get_owner> > >;
 
-
+    using account_index = graphene::multi_index<N(account), account>;
 
     private:
         admins_index        admin_tables;
@@ -312,6 +329,7 @@ class nft : public contract
         nftgame_index       game_tables;
         assetmaps_index     assetmap_tables;
         order_index         order_tables;
+        account_index       accounts;
 
         int64_t             contract_owner_id = 0;
 		
